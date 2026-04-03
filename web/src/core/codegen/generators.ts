@@ -100,7 +100,11 @@ export function generateCSharpFetchExpression(fetchXml: string): string {
 // ─── JavaScript / TypeScript snippet ─────────────────────────────────────────
 
 export function generateJavaScript(fetchXml: string): string {
-  const escaped = fetchXml.replace(/`/g, '\\`').replace(/\$/g, '\\$')
+  // Escape backslashes first, then backticks and dollar signs for template literal embedding
+  const escaped = fetchXml
+    .replace(/\\/g, '\\\\')
+    .replace(/`/g, '\\`')
+    .replace(/\$/g, '\\$')
   return [
     '// JavaScript / TypeScript – Dataverse Web API',
     'const fetchXml = `',
