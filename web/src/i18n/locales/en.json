@@ -1,0 +1,137 @@
+{
+  "app": {
+    "title": "FetchXML Builder Web",
+    "subtitle": "Build queries for Microsoft Dataverse & Power Platform"
+  },
+  "nav": {
+    "builder": "Builder",
+    "result": "Results",
+    "code": "Code",
+    "history": "History",
+    "settings": "Settings"
+  },
+  "tree": {
+    "addChild": "Add child",
+    "delete": "Delete",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "comment": "Comment",
+    "uncomment": "Uncomment",
+    "duplicate": "Duplicate",
+    "noEntity": "(no entity)",
+    "noName": "(no name)"
+  },
+  "node": {
+    "fetch": "Fetch",
+    "entity": "Entity",
+    "linkEntity": "Link-entity",
+    "attribute": "Attribute",
+    "allAttributes": "All Attributes",
+    "filter": "Filter",
+    "condition": "Condition",
+    "order": "Order",
+    "value": "Value",
+    "comment": "Comment"
+  },
+  "form": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "apply": "Apply",
+    "name": "Name",
+    "alias": "Alias",
+    "aggregate": "Aggregate",
+    "groupby": "Group by",
+    "distinct": "Distinct",
+    "top": "Top (limit)",
+    "count": "Count",
+    "page": "Page",
+    "pageSize": "Page size",
+    "pagingCookie": "Paging cookie",
+    "datasource": "Datasource",
+    "from": "From",
+    "to": "To",
+    "linkType": "Link type",
+    "filterType": "Filter type",
+    "attribute": "Attribute",
+    "operator": "Operator",
+    "value": "Value",
+    "entityname": "Entity name (cross-entity)",
+    "descending": "Descending",
+    "noLock": "No-lock",
+    "mapping": "Mapping",
+    "returnTotalRecordCount": "Return total count",
+    "intersect": "Intersect",
+    "userTimezone": "User timezone",
+    "dategrouping": "Date grouping",
+    "placeholder": {
+      "entityName": "e.g. account",
+      "attribute": "e.g. name",
+      "alias": "e.g. myAlias",
+      "value": "Enter value"
+    }
+  },
+  "validation": {
+    "error": "Error",
+    "warning": "Warning",
+    "info": "Info",
+    "learnMore": "Learn more"
+  },
+  "xml": {
+    "title": "FetchXML",
+    "copy": "Copy",
+    "format": "Format",
+    "copied": "Copied!"
+  },
+  "code": {
+    "title": "Generated Code",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "lang": {
+      "fetchxml": "FetchXML",
+      "odata": "OData URL",
+      "csharp": "C#",
+      "javascript": "JavaScript",
+      "powerfx": "Power Fx",
+      "sql": "SQL (preview)"
+    }
+  },
+  "auth": {
+    "signIn": "Sign in to Dataverse",
+    "signOut": "Sign out",
+    "connected": "Connected",
+    "notConnected": "Not connected",
+    "connecting": "Connecting…",
+    "orgUrl": "Organization URL",
+    "orgUrlPlaceholder": "https://yourorg.crm.dynamics.com"
+  },
+  "execute": {
+    "run": "Run query",
+    "running": "Running…",
+    "noResults": "No records returned.",
+    "exportCsv": "Export CSV",
+    "exportJson": "Export JSON",
+    "totalRecords": "{{count}} records",
+    "page": "Page {{page}}"
+  },
+  "history": {
+    "title": "Query history",
+    "empty": "No history yet.",
+    "clear": "Clear",
+    "restore": "Restore",
+    "savedAt": "Saved at {{time}}"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "theme": "Theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "showNodeType": "Show node type in tree",
+    "showValidation": "Show validation hints"
+  },
+  "errors": {
+    "parseXml": "Failed to parse FetchXML",
+    "executeQuery": "Failed to execute query",
+    "loadMetadata": "Failed to load metadata"
+  }
+}
