@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { generateCode } from '../core/codegen/generators.ts'
+import { generateCode, generateCSharpCode, generateCSharpFetchExpression } from '../core/codegen/generators.ts'
 
 const SAMPLE_XML = `<?xml version="1.0"?>
 <fetch top="5" mapping="logical">
@@ -29,16 +29,41 @@ describe('Code Generators', () => {
     expect(out).toContain('$top=5')
   })
 
-  it('csharp generator returns FetchExpression code', () => {
-    const out = generateCode('csharp', SAMPLE_XML)
-    expect(out).toContain('FetchExpression')
-    expect(out).toContain('RetrieveMultiple')
+  it('csharp FetchXML style uses verbatim string with "" quoting', () => {
+    const out = generateCSharpCode(SAMPLE_XML, 'fetchxml')
+    // Should use C# verbatim interpolated string
+    expect(out).toContain('$@"')
+    // XML double-quotes must be escaped as "" (verbatim string convention)
+    expect(out).toContain('name=""account""')
+    // Variable name should be fetchXml
+    expect(out).toContain('var fetchXml =')
+    // Should NOT include FetchExpression line in fetchxml style
+    expect(out).not.toContain('new FetchExpression')
   })
 
-  it('javascript generator returns fetch API code', () => {
+  it('csharp FetchExpression style uses single-quoted XML and FetchExpression constructor', () => {
+    const out = generateCSharpFetchExpression(SAMPLE_XML)
+    // Should use C# verbatim interpolated string
+    expect(out).toContain('$@"')
+    // XML double-quotes must be replaced with single quotes
+    expect(out).toContain("name='account'")
+    // Variable name should be fetch
+    expect(out).toContain('var fetch =')
+    // Must include FetchExpression construction
+    expect(out).toContain('new FetchExpression(fetch)')
+  })
+
+  it('javascript generator returns array-join format with single-quoted attributes', () => {
     const out = generateCode('javascript', SAMPLE_XML)
-    expect(out).toContain('fetch(')
-    expect(out).toContain('fetchXml')
+    // Should use array-join format (matching JavascriptCodeGenerator.cs)
+    expect(out).toContain('var fetchXml = [')
+    expect(out).toContain('].join("")')
+    // Each element should be a JSON string
+    expect(out).toContain('"<fetch')
+    // Attributes must use single quotes
+    expect(out).toContain("name='account'")
+    // No XML declaration in JS output
+    expect(out).not.toContain('<?xml')
   })
 
   it('sql generator returns SELECT statement', () => {

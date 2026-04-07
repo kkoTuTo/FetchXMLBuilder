@@ -77,50 +77,128 @@ export function generateODataUrl(
   }
 }
 
-// ─── C# FetchExpression snippet ──────────────────────────────────────────────
+// ─── C# code generation ──────────────────────────────────────────────────────
 
+export type CSharpStyle = 'fetchxml' | 'fetchexpression'
+
+/**
+ * C# FetchXML style – matching CSharpCodeGeneratorFetchXML.cs from the original plugin.
+ * Produces a C# verbatim interpolated string ($@"...") where " is escaped as "".
+ *
+ * Example:
+ *   var fetchXml = $@"<?xml version=""1.0"" encoding=""utf-8""?>
+ *   <fetch>
+ *     <entity name=""account"" />
+ *   </fetch>";
+ */
+export function generateCSharpFetchXml(fetchXml: string): string {
+  const pretty = generateFetchXml(fetchXml)
+  // Escape double quotes as "" for C# verbatim string
+  const escaped = pretty.replace(/"/g, '""')
+  return `var fetchXml = $@"${escaped}";`
+}
+
+/**
+ * C# FetchExpression style – matching CSharpCodeGeneratorFetchExpression.cs.
+ * Replaces " with ' in XML and wraps in $@"...", then adds FetchExpression construction.
+ *
+ * Example:
+ *   var fetch = $@"<?xml version='1.0' encoding='utf-8'?>
+ *   <fetch>
+ *     <entity name='account' />
+ *   </fetch>";
+ *
+ *   var query = new FetchExpression(fetch);
+ */
 export function generateCSharpFetchExpression(fetchXml: string): string {
-  const escaped = fetchXml
-    .replace(/\\/g, '\\\\')
-    .replace(/"/g, '\\"')
-    .split('\n')
-    .map((line) => `"${line}\\n"`)
-    .join('\n  + ')
-
+  const pretty = generateFetchXml(fetchXml)
+  // Replace double quotes with single quotes (verbatim string needs no escaping then)
+  const singleQuoted = pretty.replace(/"/g, "'")
   return [
-    '// C# – FetchExpression',
-    'var fetchXml =',
-    `  ${escaped};`,
+    `var fetch = $@"${singleQuoted}";`,
     '',
-    'var query = new FetchExpression(fetchXml);',
-    'var results = service.RetrieveMultiple(query);',
+    'var query = new FetchExpression(fetch);',
   ].join('\n')
+}
+
+/** Generate C# code in the requested style (defaults to 'fetchxml'). */
+export function generateCSharpCode(fetchXml: string, style: CSharpStyle = 'fetchxml'): string {
+  return style === 'fetchexpression'
+    ? generateCSharpFetchExpression(fetchXml)
+    : generateCSharpFetchXml(fetchXml)
 }
 
 // ─── JavaScript / TypeScript snippet ─────────────────────────────────────────
 
+/**
+ * Escape a value for use inside an XML attribute delimited by single quotes.
+ * Mirrors SecurityElement.Escape() used in the original JavascriptCodeGenerator.cs.
+ */
+function escapeXmlAttrSingleQuote(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
+}
+
+/**
+ * Recursively convert a FetchNode to an array of indented XML line strings,
+ * using single-quoted attribute values (matches JavascriptCodeGenerator.cs).
+ * The root <fetch> element starts at depth 0; the XML declaration is omitted.
+ */
+function fetchNodeToLines(node: FetchNode, depth: number, lines: string[]): void {
+  if (node.type === '#comment') {
+    lines.push(`${indent(depth)}<!--${node.attrs['#comment'] ?? ''}-->`)
+    return
+  }
+
+  const ind = indent(depth)
+  const attrStr = Object.entries(node.attrs)
+    .filter(([k]) => k !== '#text')
+    .map(([k, v]) => ` ${k}='${escapeXmlAttrSingleQuote(v)}'`)
+    .join('')
+
+  const hasText = node.attrs['#text'] !== undefined
+  const hasChildren = node.children.length > 0
+
+  if (!hasChildren && !hasText) {
+    lines.push(`${ind}<${node.type}${attrStr}/>`)
+  } else if (hasText) {
+    // Inline text content, e.g. <value>42</value>
+    lines.push(`${ind}<${node.type}${attrStr}>${escapeXmlAttrSingleQuote(node.attrs['#text'] ?? '')}</${node.type}>`)
+  } else {
+    lines.push(`${ind}<${node.type}${attrStr}>`)
+    for (const child of node.children) {
+      fetchNodeToLines(child, depth + 1, lines)
+    }
+    lines.push(`${ind}</${node.type}>`)
+  }
+}
+
+/**
+ * JavaScript array-join format – matching JavascriptCodeGenerator.cs from the original plugin.
+ * Omits the XML declaration; each element becomes a JSON-string array entry.
+ *
+ * Example:
+ *   var fetchXml = [
+ *   "<fetch>",
+ *   "  <entity name='account'/>",
+ *   "</fetch>"].join("");
+ */
 export function generateJavaScript(fetchXml: string): string {
-  // Escape backslashes first, then backticks and dollar signs for template literal embedding
-  const escaped = fetchXml
-    .replace(/\\/g, '\\\\')
-    .replace(/`/g, '\\`')
-    .replace(/\$/g, '\\$')
-  return [
-    '// JavaScript / TypeScript – Dataverse Web API',
-    'const fetchXml = `',
-    escaped,
-    '`;',
-    '',
-    "const encodedFetch = encodeURIComponent(fetchXml.trim());",
-    '',
-    '// Adjust entity collection name as appropriate',
-    "const response = await fetch(",
-    "  `/api/data/v9.2/[entity-set]?fetchXml=${encodedFetch}`,",
-    '  { headers: { "OData-MaxVersion": "4.0", "OData-Version": "4.0", Accept: "application/json" } }',
-    ');',
-    'const data = await response.json();',
-    'console.log(data.value);',
-  ].join('\n')
+  try {
+    const root = parseFetchXml(fetchXml)
+    const lines: string[] = []
+    fetchNodeToLines(root, 0, lines)
+    // JSON.stringify gives properly escaped double-quoted strings, matching
+    // JsonConvert.SerializeObject() in the original C# generator.
+    const arrayItems = lines.map((l) => JSON.stringify(l)).join(',\n')
+    return `var fetchXml = [\n${arrayItems}].join("");`
+  } catch {
+    return '// Invalid FetchXML'
+  }
 }
 
 // ─── Power Automate / Power FX note ──────────────────────────────────────────
@@ -241,14 +319,19 @@ export const CODE_LANGUAGE_LABELS: Record<CodeLanguage, string> = {
   sql: 'SQL (preview)',
 }
 
-export function generateCode(lang: CodeLanguage, fetchXml: string, baseUrl?: string): string {
+export interface CodegenOptions {
+  csharpStyle?: CSharpStyle
+  baseUrl?: string
+}
+
+export function generateCode(lang: CodeLanguage, fetchXml: string, options?: CodegenOptions): string {
   switch (lang) {
     case 'fetchxml':
       return generateFetchXml(fetchXml)
     case 'odata':
-      return generateODataUrl(fetchXml, baseUrl)
+      return generateODataUrl(fetchXml, options?.baseUrl)
     case 'csharp':
-      return generateCSharpFetchExpression(fetchXml)
+      return generateCSharpCode(fetchXml, options?.csharpStyle ?? 'fetchxml')
     case 'javascript':
       return generateJavaScript(fetchXml)
     case 'powerfx':

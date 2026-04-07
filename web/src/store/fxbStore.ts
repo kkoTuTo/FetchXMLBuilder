@@ -38,6 +38,7 @@ export interface AppSettings {
   language: string
   orgUrl: string
   baseApiUrl: string
+  csharpStyle: 'fetchxml' | 'fetchexpression'
 }
 
 export interface FxbState {
@@ -112,6 +113,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   language: 'en',
   orgUrl: '',
   baseApiUrl: 'https://[org].api.crm.dynamics.com/api/data/v9.2',
+  csharpStyle: 'fetchxml',
 }
 
 export const useFxbStore = create<FxbState>()(

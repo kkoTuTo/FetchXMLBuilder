@@ -5,6 +5,7 @@ import { Button, Tabs, Tooltip, message } from 'antd'
 import { CopyOutlined } from '@ant-design/icons'
 import { useFxbStore, selectCurrentXml } from '@/store/index.ts'
 import { generateCode, CODE_LANGUAGE_LABELS, type CodeLanguage } from '@/core/codegen/index.ts'
+import type { CSharpStyle } from '@/core/codegen/index.ts'
 
 const LANG_MONACO: Record<CodeLanguage, string> = {
   fetchxml: 'xml',
@@ -17,14 +18,20 @@ const LANG_MONACO: Record<CodeLanguage, string> = {
 
 const LANGS = Object.keys(CODE_LANGUAGE_LABELS) as CodeLanguage[]
 
+const CSHARP_STYLES: { key: CSharpStyle; label: string }[] = [
+  { key: 'fetchxml',        label: 'FetchXML string' },
+  { key: 'fetchexpression', label: 'FetchExpression' },
+]
+
 export function CodeOutputPanel() {
   const { t } = useTranslation()
-  const { setActiveCodeLang, activeCodeLang, settings } = useFxbStore()
+  const { setActiveCodeLang, activeCodeLang, settings, updateSettings } = useFxbStore()
   const currentXml = useFxbStore(selectCurrentXml)
   const [copied, setCopied] = useState(false)
   const isDark = settings.theme === 'dark'
 
-  const code = generateCode(activeCodeLang, currentXml)
+  const csharpStyle: CSharpStyle = settings.csharpStyle ?? 'fetchxml'
+  const code = generateCode(activeCodeLang, currentXml, { csharpStyle })
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(code)
@@ -57,15 +64,44 @@ export function CodeOutputPanel() {
           >
             {t('code.title')}
           </span>
-          <Tooltip title={copied ? t('code.copied') : t('code.copy')}>
-            <Button
-              type="text"
-              size="small"
-              icon={<CopyOutlined />}
-              onClick={() => { void handleCopy() }}
-              style={{ color: copied ? 'var(--color-success)' : 'var(--color-text-secondary)', fontSize: 12 }}
-            />
-          </Tooltip>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {/* C# style toggle – only visible on the C# tab */}
+            {activeCodeLang === 'csharp' && (
+              <div style={{ display: 'flex', gap: 4 }}>
+                {CSHARP_STYLES.map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => updateSettings({ csharpStyle: key })}
+                    style={{
+                      padding: '3px 10px',
+                      borderRadius: 6,
+                      border: csharpStyle === key
+                        ? '1.5px solid var(--color-accent)'
+                        : '1px solid var(--color-border)',
+                      background: csharpStyle === key ? 'var(--color-accent-subtle)' : 'transparent',
+                      color: csharpStyle === key ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+                      cursor: 'pointer',
+                      fontSize: 11,
+                      fontWeight: csharpStyle === key ? 600 : 400,
+                      fontFamily: 'var(--font-sans)',
+                      transition: 'all var(--transition)',
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+            <Tooltip title={copied ? t('code.copied') : t('code.copy')}>
+              <Button
+                type="text"
+                size="small"
+                icon={<CopyOutlined />}
+                onClick={() => { void handleCopy() }}
+                style={{ color: copied ? 'var(--color-success)' : 'var(--color-text-secondary)', fontSize: 12 }}
+              />
+            </Tooltip>
+          </div>
         </div>
 
         {/* Language tabs */}
