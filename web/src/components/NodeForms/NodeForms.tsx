@@ -277,6 +277,37 @@ function FilterForm({ id }: { id: string }) {
           options={[{ value: 'and', label: 'AND' }, { value: 'or', label: 'OR' }]}
         />
       </FieldRow>
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+        <FieldRow label={t('form.isQuickFind')}>
+          <FormSwitch
+            checked={a.isquickfindfields === 'true'}
+            onChange={(v) => up('isquickfindfields', v ? 'true' : 'false')}
+          />
+        </FieldRow>
+        <FieldRow label={t('form.overrideQFLimitApply')}>
+          <FormSwitch
+            checked={a.overridequickfindrecordlimitenabled === 'true'}
+            onChange={(v) => up('overridequickfindrecordlimitenabled', v ? 'true' : 'false')}
+          />
+        </FieldRow>
+        <FieldRow label={t('form.overrideQFLimitBypass')}>
+          <FormSwitch
+            checked={a.overridequickfindrecordlimitdisabled === 'true'}
+            onChange={(v) => up('overridequickfindrecordlimitdisabled', v ? 'true' : 'false')}
+          />
+        </FieldRow>
+      </div>
+      <FieldRow label={t('form.hint')}>
+        <FormSelect
+          value={a.hint ?? ''}
+          onChange={(v) => up('hint', v)}
+          options={[
+            { value: '', label: '(none)' },
+            { value: 'union', label: 'union' },
+          ]}
+          allowClear
+        />
+      </FieldRow>
     </NodeFormWrapper>
   )
 }

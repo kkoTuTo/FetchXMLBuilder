@@ -129,5 +129,6 @@ export type ValidationLevel = 'error' | 'warning' | 'info'
 export interface ValidationResult {
   level: ValidationLevel
   message: string
+  params?: Record<string, string>
   helpUrl?: string
 }

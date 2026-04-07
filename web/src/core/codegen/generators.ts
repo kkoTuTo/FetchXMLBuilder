@@ -35,9 +35,12 @@ export function generateFetchXml(fetchXml: string): string {
 }
 
 // ─── OData v4 (Web API) URL ──────────────────────────────────────────────────
+// Ported from ODataCodeGenerator.cs - ConvertToOData2 method
 
-/** Generates a simple OData $filter representation from a FetchXML string.
- *  Full OData conversion requires metadata; this provides a structural preview. */
+/** Generates an OData URL representation from a FetchXML string.
+ *  Ported from C# ODataCodeGenerator.cs ConvertToOData2 method.
+ *  Supports $select, $expand, $filter, $orderby, $top.
+ */
 export function generateODataUrl(
   fetchXml: string,
   baseUrl = 'https://[org].crm.dynamics.com/api/data/v9.2',
@@ -56,29 +59,260 @@ export function generateODataUrl(
 
     const parts: string[] = []
 
-    // $select
-    const attrs = children(entity, 'attribute').map((n) => a(n, 'name')).filter(Boolean)
-    if (attrs.length > 0) parts.push(`$select=${attrs.join(',')}`)
+    // $select - from entity attributes and link-entity expanded attributes
+    let select = getODataSelect(entity)
+    const expand = getODataExpand(entity, (expandedSelect) => {
+      if (expandedSelect) {
+        select = select ? `${select},${expandedSelect}` : expandedSelect
+      }
+    })
+    if (select) parts.push(`$select=${select}`)
 
     // $top
     const top = a(root, 'top') || a(root, 'count')
     if (top) parts.push(`$top=${top}`)
 
     // $orderby
-    const orders = children(entity, 'order')
-    if (orders.length > 0) {
-      const orderParts = orders.map((o) => {
-        const desc = a(o, 'descending') === 'true' ? ' desc' : ' asc'
-        return a(o, 'attribute') + desc
-      })
-      parts.push(`$orderby=${orderParts.join(',')}`)
-    }
+    const order = getODataOrder(entity)
+    if (order) parts.push(`$orderby=${order}`)
+
+    // $expand
+    if (expand) parts.push(`$expand=${expand}`)
+
+    // $filter
+    const filter = getODataFilter(entity)
+    if (filter) parts.push(`$filter=${filter}`)
 
     const qs = parts.length ? '?' + parts.join('&') : ''
     return `${baseUrl}/${collectionName}${qs}`
   } catch {
     return '(Invalid FetchXML)'
   }
+}
+
+/** Get $select clause from entity attributes.
+ *  Ported from ODataCodeGenerator.cs GetSelect method.
+ */
+function getODataSelect(entity: FetchNode): string {
+  const attrs = children(entity, 'attribute')
+    .filter((n) => a(n, 'name'))
+    .map((n) => a(n, 'name'))
+  return attrs.join(',')
+}
+
+/** Get $expand clause from link-entity nodes.
+ *  Ported from ODataCodeGenerator.cs GetExpand method.
+ */
+function getODataExpand(entity: FetchNode, updateSelect: (expandedSelect: string) => void): string {
+  const links = children(entity, 'link-entity')
+  if (links.length === 0) return ''
+
+  const expands: string[] = []
+  const expandedSelects: string[] = []
+
+  for (const link of links) {
+    // Use relationship name or schema name as fallback
+    const relationName = getRelationName(entity, link)
+    if (!relationName) continue
+
+    expands.push(relationName)
+
+    // Get expanded select for this link entity
+    const expanded = getODataExpandedSelect(link, relationName)
+    if (expanded) expandedSelects.push(expanded)
+  }
+
+  if (expandedSelects.length > 0) {
+    updateSelect(expandedSelects.join(','))
+  }
+
+  return expands.join(',')
+}
+
+/** Get expanded select for a link-entity.
+ *  Ported from ODataCodeGenerator.cs GetExpandedSelect method.
+ */
+function getODataExpandedSelect(link: FetchNode, relation: string): string {
+  const attrs = children(link, 'attribute')
+    .filter((n) => a(n, 'name'))
+    .map((n) => `${relation}/${a(n, 'name')}`)
+  return attrs.join(',')
+}
+
+/** Get relation name for a link-entity.
+ *  Simplified version - in C# this uses metadata lookup.
+ */
+function getRelationName(_entity: FetchNode, link: FetchNode): string {
+  // Try to use alias as relation name, or construct from entity names
+  const alias = a(link, 'alias')
+  const linkName = a(link, 'name')
+  // entity name available via a(_entity, 'name') if needed for future use
+  return alias || linkName || ''
+}
+
+/** Get $orderby clause from order nodes.
+ *  Ported from ODataCodeGenerator.cs GetOrder method.
+ */
+function getODataOrder(entity: FetchNode): string {
+  const orders = children(entity, 'order')
+    .filter((o) => a(o, 'attribute'))
+    .map((o) => {
+      const attr = a(o, 'attribute')
+      const desc = a(o, 'descending') === 'true' ? ' desc' : ''
+      return attr + desc
+    })
+  return orders.join(',')
+}
+
+/** Get $filter clause from filter nodes.
+ *  Ported from ODataCodeGenerator.cs GetFilter and GetCondition methods.
+ */
+function getODataFilter(entity: FetchNode): string {
+  const filters = children(entity, 'filter').filter(
+    (f) => f.children && f.children.length > 0
+  )
+  if (filters.length === 0) return ''
+
+  const results: string[] = []
+  for (const filter of filters) {
+    const filterStr = buildODataFilter(entity, filter)
+    if (filterStr) results.push(filterStr)
+  }
+
+  // Join multiple filters with AND
+  if (results.length === 0) return ''
+  if (results.length === 1) return results[0]
+  return results.map((r) => `(${r})`).join(' and ')
+}
+
+/** Build OData filter string from a filter node.
+ *  Ported from ODataCodeGenerator.cs GetFilter method.
+ */
+function buildODataFilter(entity: FetchNode, filter: FetchNode): string {
+  if (!filter.children || filter.children.length === 0) return ''
+
+  const logical = a(filter, 'type') === 'or' ? ' or ' : ' and '
+  const parts: string[] = []
+
+  for (const item of filter.children) {
+    if (item.type === 'condition') {
+      const cond = buildODataCondition(entity, item)
+      if (cond) parts.push(cond)
+    } else if (item.type === 'filter') {
+      const nested = buildODataFilter(entity, item)
+      if (nested) parts.push(nested)
+    }
+  }
+
+  if (parts.length === 0) return ''
+  if (parts.length === 1) return parts[0]
+
+  const result = parts.join(logical)
+  return `(${result})`
+}
+
+/** Build OData condition string from a condition node.
+ *  Ported from ODataCodeGenerator.cs GetCondition method.
+ */
+function buildODataCondition(_entity: FetchNode, condition: FetchNode): string {
+  const attr = a(condition, 'attribute')
+  if (!attr) return ''
+
+  const op = a(condition, 'operator')
+  let value = a(condition, 'value')
+  const values = children(condition, 'value').map((v) => a(v, '#text') || '')
+
+  switch (op) {
+    case 'eq':
+    case 'ne':
+    case 'lt':
+    case 'le':
+    case 'gt':
+    case 'ge':
+      return value !== undefined && value !== ''
+        ? `${attr} ${op} ${formatODataValue(value)}`
+        : `${attr} ${op}`
+
+    case 'neq':
+      return value !== undefined && value !== ''
+        ? `${attr} ne ${formatODataValue(value)}`
+        : `${attr} ne`
+
+    case 'null':
+      return `${attr} eq null`
+
+    case 'not-null':
+      return `${attr} ne null`
+
+    case 'like':
+      // substringof for OData v2, contains for v4
+      if (value) {
+        const cleanValue = value.replace(/^%|%$/g, '')
+        if (value.startsWith('%') && value.endsWith('%')) {
+          return `contains(${attr},${formatODataValue(cleanValue)})`
+        }
+        return `substringof(${formatODataValue(value)},${attr})`
+      }
+      return ''
+
+    case 'not-like':
+      if (value) {
+        return `not substringof(${formatODataValue(value)},${attr})`
+      }
+      return ''
+
+    case 'begins-with':
+      return value ? `startswith(${attr},${formatODataValue(value)})` : ''
+
+    case 'ends-with':
+      return value ? `endswith(${attr},${formatODataValue(value)})` : ''
+
+    case 'in':
+      if (values.length > 0) {
+        return values.map((v) => `${attr} eq ${formatODataValue(v)}`).join(' or ')
+      }
+      if (value) {
+        return `${attr} eq ${formatODataValue(value)}`
+      }
+      return ''
+
+    case 'not-in':
+      if (values.length > 0) {
+        return values.map((v) => `${attr} ne ${formatODataValue(v)}`).join(' and ')
+      }
+      if (value) {
+        return `${attr} ne ${formatODataValue(value)}`
+      }
+      return ''
+
+    case 'between':
+      if (values.length >= 2) {
+        return `(${attr} ge ${formatODataValue(values[0])} and ${attr} le ${formatODataValue(values[1])})`
+      }
+      return ''
+
+    default:
+      // Fallback for unknown operators
+      return value !== undefined && value !== ''
+        ? `${attr} ${op} ${formatODataValue(value)}`
+        : `${attr} ${op}`
+  }
+}
+
+/** Format a value for OData query string.
+ *  Ported from ODataCodeGenerator.cs value formatting logic.
+ */
+function formatODataValue(value: string): string {
+  // Check if it's a number
+  if (/^-?\d+(\.\d+)?$/.test(value)) {
+    return value
+  }
+  // Check if it's a GUID
+  if (/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(value)) {
+    return `${value}`
+  }
+  // String value - wrap in quotes
+  return `'${value.replace(/'/g, "''")}'`
 }
 
 // ─── C# code generation ──────────────────────────────────────────────────────
@@ -232,7 +466,12 @@ export function generatePowerFx(fetchXml: string): string {
 }
 
 // ─── SQL-like reference (read-only preview) ──────────────────────────────────
+// Ported from SQLQueryGenerator.cs - GetSQLQuery method
 
+/** Generates a SQL-like representation from a FetchXML string.
+ *  Ported from C# SQLQueryGenerator.cs GetSQLQuery method.
+ *  Supports SELECT, FROM, JOIN, WHERE, ORDER BY, TOP, DISTINCT, GROUP BY, HAVING.
+ */
 export function generateSqlReference(fetchXml: string): string {
   try {
     const root = parseFetchXml(fetchXml)
@@ -240,76 +479,484 @@ export function generateSqlReference(fetchXml: string): string {
     if (!entity) return '-- No entity defined'
 
     const tableName = a(entity, 'name') || '?'
-    const attrs = children(entity, 'attribute')
-    const allAttrs = entity.children.find((c) => c.type === 'all-attributes')
+    const entityAlias = 'e' // Default alias for main entity
 
-    const selectCols =
-      allAttrs || attrs.length === 0
-        ? '*'
-        : attrs
-            .map((n) => {
-              const name = a(n, 'name')
-              const alias = a(n, 'alias')
-              return alias ? `${name} AS ${alias}` : name
-            })
-            .join(', ')
+    // Track alias mappings for link entities
+    const aliasMap = new Map<string, string>()
 
-    const lines: string[] = [`SELECT ${selectCols}`, `FROM ${tableName}`]
+    // Build SELECT columns
+    const selectCols = buildSqlSelect(entity, entityAlias, aliasMap)
+
+    // Build ORDER BY columns
+    const orderCols = buildSqlOrder(entity, entityAlias, aliasMap)
+
+    // Build JOINs
+    const joins = buildSqlJoins(entity, entityAlias, aliasMap)
+
+    // Build WHERE clause
+    const whereClause = buildSqlWhere(entity, entityAlias, aliasMap)
+
+    // Build GROUP BY and HAVING
+    const { groupBy, having } = buildSqlGroupByHaving(entity, entityAlias)
+
+    // Assemble SQL
+    const sql = new SqlBuilder()
+
+    // SELECT with optional DISTINCT and TOP
+    const distinct = a(root, 'distinct') === 'true' ? 'DISTINCT ' : ''
+    const top = a(root, 'top')
+    const topClause = top ? `TOP ${top} ` : ''
+
+    sql.append(`SELECT ${distinct}${topClause}${selectCols.join(', ')}`)
+    sql.append(`FROM ${tableName} AS ${entityAlias}`)
 
     // JOINs
-    const links = children(entity, 'link-entity')
-    for (const le of links) {
-      const lt = a(le, 'link-type') || 'inner'
-      const joinType = lt.toUpperCase().includes('OUTER') || lt === 'outer' ? 'LEFT OUTER JOIN' : 'INNER JOIN'
-      lines.push(
-        `${indent(1)}${joinType} ${a(le, 'name')} AS ${a(le, 'alias') || a(le, 'name')}` +
-          ` ON ${tableName}.${a(le, 'from')} = ${a(le, 'alias') || a(le, 'name')}.${a(le, 'to')}`,
-      )
+    if (joins.length > 0) {
+      joins.forEach((join) => sql.append(join))
     }
 
-    // WHERE – flatten conditions
-    const filters = children(entity, 'filter')
-    if (filters.length > 0) {
-      lines.push('WHERE')
-      for (const filter of filters) {
-        const conds = children(filter, 'condition')
-        const filterType = (a(filter, 'type') || 'and').toUpperCase()
-        const condStrs = conds.map((c) => {
-          const op = a(c, 'operator')
-          const val = a(c, 'value')
-          const opStr = op === 'eq' ? '=' : op === 'ne' ? '<>' : op === 'gt' ? '>' : op === 'lt' ? '<' : op === 'ge' ? '>=' : op === 'le' ? '<=' : op === 'null' ? 'IS NULL' : op === 'not-null' ? 'IS NOT NULL' : op === 'like' ? 'LIKE' : op.toUpperCase()
-          return val
-            ? `  ${a(c, 'attribute')} ${opStr} '${val}'`
-            : `  ${a(c, 'attribute')} ${opStr}`
-        })
-        lines.push(condStrs.join(`\n  ${filterType} `))
-      }
+    // WHERE
+    if (whereClause) {
+      sql.append(`WHERE ${whereClause}`)
+    }
+
+    // GROUP BY
+    if (groupBy.length > 0) {
+      sql.append(`GROUP BY ${groupBy.join(', ')}`)
+    }
+
+    // HAVING
+    if (having) {
+      sql.append(`HAVING ${having}`)
     }
 
     // ORDER BY
-    const orders = children(entity, 'order')
-    if (orders.length > 0) {
-      lines.push('ORDER BY')
-      lines.push(
-        orders
-          .map((o) => {
-            const desc = a(o, 'descending') === 'true' ? ' DESC' : ' ASC'
-            return `  ${a(o, 'attribute')}${desc}`
-          })
-          .join(',\n'),
-      )
+    if (orderCols.length > 0) {
+      sql.append(`ORDER BY ${orderCols.join(', ')}`)
     }
 
-    // TOP
-    const top = a(root, 'top')
-    if (top) {
-      lines[0] = `SELECT TOP(${top}) ${selectCols}`
-    }
-
-    return `-- SQL Reference (read-only, not executable against Dataverse)\n` + lines.join('\n')
+    return `-- SQL Reference (read-only, not executable against Dataverse)\n${sql.toString()}`
   } catch {
     return '-- Invalid FetchXML'
   }
+}
+
+/** SQL builder helper class for constructing SQL statements. */
+class SqlBuilder {
+  private lines: string[] = []
+
+  append(line: string): void {
+    this.lines.push(line)
+  }
+
+  toString(): string {
+    return this.lines.join('\n')
+  }
+}
+
+/** Build SELECT columns list.
+ *  Ported from SQLQueryGenerator.cs GetSelect and GetExpandedSelect methods.
+ */
+function buildSqlSelect(
+  entity: FetchNode,
+  entityAlias: string,
+  _aliasMap: Map<string, string>,
+  linkAlias?: string,
+): string[] {
+  const result: string[] = []
+  const attrs = children(entity, 'attribute')
+  const allAttrs = entity.children.find((c) => c.type === 'all-attributes')
+
+  if (allAttrs) {
+    result.push(`${linkAlias || entityAlias}.*`)
+  } else if (attrs.length > 0) {
+    for (const attr of attrs) {
+      const name = a(attr, 'name')
+      const alias = a(attr, 'alias')
+      const aggregate = a(attr, 'aggregate')
+      const colAlias = linkAlias || entityAlias
+
+      if (aggregate) {
+        // Aggregate function: COUNT, SUM, AVG, MIN, MAX
+        const funcName = aggregate.toUpperCase()
+        const col = alias ? `${funcName}(${colAlias}.${name}) AS ${alias}` : `${funcName}(${colAlias}.${name})`
+        result.push(col)
+      } else {
+        const col = alias ? `${colAlias}.${name} AS ${alias}` : `${colAlias}.${name}`
+        result.push(col)
+      }
+    }
+  } else {
+    result.push('*')
+  }
+
+  // Add expanded selects from link entities
+  const links = children(entity, 'link-entity')
+  for (const link of links) {
+    const linkAliasName = a(link, 'alias') || a(link, 'name')
+    const expanded = buildSqlExpandedSelect(link, linkAliasName)
+    result.push(...expanded)
+  }
+
+  // _aliasMap reserved for future use (e.g., entity name resolution)
+  void _aliasMap
+
+  return result
+}
+
+/** Build expanded SELECT columns from a link-entity.
+ *  Ported from SQLQueryGenerator.cs GetExpandedSelect method.
+ */
+function buildSqlExpandedSelect(link: FetchNode, linkAlias: string): string[] {
+  const result: string[] = []
+  const attrs = children(link, 'attribute')
+
+  for (const attr of attrs) {
+    const name = a(attr, 'name')
+    if (name) {
+      result.push(`${linkAlias}.${name}`)
+    }
+  }
+
+  // Recursively handle nested link-entities
+  const nestedLinks = children(link, 'link-entity')
+  for (const nested of nestedLinks) {
+    const nestedAlias = a(nested, 'alias') || a(nested, 'name')
+    const nestedExpanded = buildSqlExpandedSelect(nested, nestedAlias)
+    result.push(...nestedExpanded)
+  }
+
+  // Suppress unused parameter warning - linkAlias is used above
+  void linkAlias
+
+  return result
+}
+
+/** Build JOIN clauses.
+ *  Ported from SQLQueryGenerator.cs GetJoin method.
+ */
+function buildSqlJoins(
+  entity: FetchNode,
+  entityAlias: string,
+  aliasMap: Map<string, string>,
+  parentAlias?: string,
+): string[] {
+  const result: string[] = []
+  const links = children(entity, 'link-entity')
+
+  for (const link of links) {
+    const linkName = a(link, 'name')
+    const linkAlias = a(link, 'alias') || linkName
+    const fromField = a(link, 'from')
+    const toField = a(link, 'to')
+    const linkType = a(link, 'link-type') || 'inner'
+
+    // Track alias mapping
+    if (linkAlias !== linkName) {
+      aliasMap.set(linkAlias, linkName)
+    }
+
+    // Determine join type
+    let joinTypeStr: string
+    if (linkType === 'outer' || linkType.toUpperCase().includes('OUTER')) {
+      joinTypeStr = 'LEFT OUTER JOIN'
+    } else {
+      joinTypeStr = 'INNER JOIN'
+    }
+
+    // Build join clause
+    const parent = parentAlias || entityAlias
+    const joinClause = `${joinTypeStr} ${linkName} AS ${linkAlias} ON ${linkAlias}.${fromField} = ${parent}.${toField}`
+    result.push(joinClause)
+
+    // Add filter conditions from link-entity to join clause
+    const linkFilters = children(link, 'filter')
+    if (linkFilters.length > 0) {
+      const linkWhere = buildSqlWhereFromFilters(link, linkAlias, aliasMap)
+      if (linkWhere) {
+        // Replace the last join with extended version
+        result[result.length - 1] = `${joinClause} AND ${linkWhere}`
+      }
+    }
+
+    // Recursively handle nested link-entities
+    const nestedJoins = buildSqlJoins(link, entityAlias, aliasMap, linkAlias)
+    result.push(...nestedJoins)
+  }
+
+  return result
+}
+
+/** Build WHERE clause.
+ *  Ported from SQLQueryGenerator.cs GetWhere and GetFilter methods.
+ */
+function buildSqlWhere(entity: FetchNode, entityAlias: string, aliasMap: Map<string, string>): string {
+  const filters = children(entity, 'filter').filter((f) => f.children && f.children.length > 0)
+  if (filters.length === 0) return ''
+
+  const parts: string[] = []
+  for (const filter of filters) {
+    const filterStr = buildSqlFilter(entity, entityAlias, aliasMap, filter)
+    if (filterStr) parts.push(filterStr)
+  }
+
+  return parts.join(' AND ')
+}
+
+/** Build WHERE clause from filters on a link-entity.
+ *  Ported from SQLQueryGenerator.cs GetJoin method filter handling.
+ */
+function buildSqlWhereFromFilters(link: FetchNode, linkAlias: string, aliasMap: Map<string, string>): string {
+  const filters = children(link, 'filter').filter((f) => f.children && f.children.length > 0)
+  if (filters.length === 0) return ''
+
+  const parts: string[] = []
+  for (const filter of filters) {
+    const filterStr = buildSqlFilter(link, linkAlias, aliasMap, filter)
+    if (filterStr) parts.push(filterStr)
+  }
+
+  return parts.join(' AND ')
+}
+
+/** Build SQL filter string from a filter node.
+ *  Ported from SQLQueryGenerator.cs GetFilter method.
+ */
+function buildSqlFilter(
+  entity: FetchNode,
+  entityAlias: string,
+  aliasMap: Map<string, string>,
+  filter: FetchNode,
+): string {
+  if (!filter.children || filter.children.length === 0) return ''
+
+  const logicalOp = a(filter, 'type') === 'or' ? ' OR ' : ' AND '
+  const parts: string[] = []
+
+  for (const item of filter.children) {
+    if (item.type === 'condition') {
+      const cond = buildSqlCondition(entity, entityAlias, aliasMap, item)
+      if (cond) parts.push(cond)
+    } else if (item.type === 'filter') {
+      const nested = buildSqlFilter(entity, entityAlias, aliasMap, item)
+      if (nested) parts.push(nested)
+    }
+  }
+
+  if (parts.length === 0) return ''
+  if (parts.length === 1) return parts[0]
+
+  const result = parts.join(logicalOp)
+  return `(${result})`
+}
+
+/** Build SQL condition string from a condition node.
+ *  Ported from SQLQueryGenerator.cs GetCondition method.
+ */
+function buildSqlCondition(
+  _entity: FetchNode,
+  entityAlias: string,
+  aliasMap: Map<string, string>,
+  condition: FetchNode,
+): string {
+  const result: string[] = []
+
+  // Get entity name from condition or use alias
+  const condEntityName = a(condition, 'entityname')
+  let colPrefix = entityAlias
+
+  if (condEntityName) {
+    if (aliasMap.has(condEntityName)) {
+      colPrefix = condEntityName
+    } else {
+      colPrefix = condEntityName
+    }
+  }
+
+  const attr = a(condition, 'attribute')
+  if (!attr) return ''
+
+  result.push(`${colPrefix}.${attr}`)
+
+  const op = a(condition, 'operator')
+  let value = a(condition, 'value')
+  const values = children(condition, 'value').map((v) => a(v, '#text') || '')
+
+  switch (op) {
+    case 'eq':
+    case 'on':
+      result.push('=')
+      break
+
+    case 'ne':
+    case 'neq':
+      result.push('<>')
+      break
+
+    case 'lt':
+      result.push('<')
+      break
+
+    case 'le':
+    case 'onorbefore':
+      result.push('<=')
+      break
+
+    case 'gt':
+      result.push('>')
+      break
+
+    case 'ge':
+    case 'onorafter':
+      result.push('>=')
+      break
+
+    case 'null':
+      result.push('IS NULL')
+      return result.join(' ')
+
+    case 'not-null':
+      result.push('IS NOT NULL')
+      return result.join(' ')
+
+    case 'like':
+      result.push('LIKE')
+      break
+
+    case 'not-like':
+      result.push('NOT LIKE')
+      break
+
+    case 'begins-with':
+    case 'notbeginwith':
+      result.push(op === 'begins-with' ? 'LIKE' : 'NOT LIKE')
+      value = value ? `${value}%` : '%'
+      break
+
+    case 'ends-with':
+    case 'notendwith':
+      result.push(op === 'ends-with' ? 'LIKE' : 'NOT LIKE')
+      value = value ? `%${value}` : '%'
+      break
+
+    case 'containvalues':
+    case 'notcontainvalues':
+      result.push(op === 'containvalues' ? 'LIKE' : 'NOT LIKE')
+      value = value ? `%${value}%` : '%%'
+      break
+
+    case 'in':
+      if (values.length > 0) {
+        return `${colPrefix}.${attr} IN (${values.map((v) => formatSqlValue(v)).join(', ')})`
+      }
+      if (value) {
+        return `${colPrefix}.${attr} IN (${formatSqlValue(value)})`
+      }
+      return ''
+
+    case 'not-in':
+      if (values.length > 0) {
+        return `${colPrefix}.${attr} NOT IN (${values.map((v) => formatSqlValue(v)).join(', ')})`
+      }
+      if (value) {
+        return `${colPrefix}.${attr} NOT IN (${formatSqlValue(value)})`
+      }
+      return ''
+
+    case 'between':
+      if (values.length >= 2) {
+        return `${colPrefix}.${attr} BETWEEN ${formatSqlValue(values[0])} AND ${formatSqlValue(values[1])}`
+      }
+      return ''
+
+    default:
+      result.push(op ? op.toUpperCase() : '=')
+  }
+
+  // Add value if present and applicable
+  if (value !== undefined && value !== '' && !['null', 'not-null'].includes(op || '')) {
+    result.push(formatSqlValue(value))
+  }
+
+  return result.join(' ')
+}
+
+/** Format a value for SQL query.
+ *  Ported from SQLQueryGenerator.cs value formatting logic.
+ */
+function formatSqlValue(value: string): string {
+  // Check if it's a number
+  if (/^-?\d+(\.\d+)?$/.test(value)) {
+    return value
+  }
+  // String value - wrap in quotes
+  return `'${value.replace(/'/g, "''")}'`
+}
+
+/** Build ORDER BY columns.
+ *  Ported from SQLQueryGenerator.cs GetOrder method.
+ */
+function buildSqlOrder(
+  entity: FetchNode,
+  entityAlias: string,
+  _aliasMap: Map<string, string>,
+  linkAlias?: string,
+): string[] {
+  const result: string[] = []
+  const orders = children(entity, 'order')
+
+  for (const order of orders) {
+    const attr = a(order, 'attribute')
+    const alias = a(order, 'alias')
+    const descending = a(order, 'descending') === 'true'
+
+    if (!attr && !alias) continue
+
+    const colName = alias || attr
+    const prefix = linkAlias || entityAlias
+    const orderStr = descending ? `${prefix}.${colName} DESC` : `${prefix}.${colName}`
+    result.push(orderStr)
+  }
+
+  // Add orders from link entities
+  const links = children(entity, 'link-entity')
+  for (const link of links) {
+    const linkAliasName = a(link, 'alias') || a(link, 'name')
+    const linkOrders = buildSqlOrder(link, entityAlias, _aliasMap, linkAliasName)
+    result.push(...linkOrders)
+  }
+
+  return result
+}
+
+/** Build GROUP BY and HAVING clauses.
+ *  Ported from SQLQueryGenerator.cs aggregate handling.
+ */
+function buildSqlGroupByHaving(
+  entity: FetchNode,
+  entityAlias: string,
+): { groupBy: string[]; having: string } {
+  const groupBy: string[] = []
+  const attrs = children(entity, 'attribute')
+
+  // Find groupby attributes
+  for (const attr of attrs) {
+    if (a(attr, 'groupby') === 'true') {
+      const name = a(attr, 'name')
+      if (name) {
+        groupBy.push(`${entityAlias}.${name}`)
+      }
+    }
+  }
+
+  // HAVING clause would come from filter conditions on aggregated fields
+  // This is a simplified implementation
+  const having = ''
+
+  // entity parameter reserved for future use (e.g., nested link-entity groupby)
+  void entity
+
+  return { groupBy, having }
 }
 
 export type CodeLanguage = 'fetchxml' | 'odata' | 'csharp' | 'javascript' | 'powerfx' | 'sql'

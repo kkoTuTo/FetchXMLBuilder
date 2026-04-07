@@ -21,6 +21,7 @@ import {
 import { serialiseFetchXml } from '@/core/parser/index.ts'
 import { parseFetchXml } from '@/core/parser/index.ts'
 import { validateTree } from '@/core/validator/index.ts'
+import { MOCK_ACCOUNT_RESULTS } from '@/services/mock/mockData.ts'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -100,6 +101,7 @@ export interface FxbState {
   setQueryRunning: (running: boolean) => void
   setQueryError: (error: string | null) => void
   setQueryPage: (page: number) => void
+  runQuery: () => void
   setAuth: (authenticated: boolean, accountName: string | null) => void
   saveToHistory: (label?: string) => void
   restoreHistory: (id: string) => void
@@ -262,6 +264,26 @@ export const useFxbStore = create<FxbState>()(
         setQueryError: (queryError) => set({ queryError, queryRunning: false }),
 
         setQueryPage: (queryPage) => set({ queryPage }),
+
+        runQuery: () => {
+          set({ queryRunning: true, queryError: null })
+          // Mock mode: simulate async query with delay
+          setTimeout(() => {
+            try {
+              set({
+                queryResults: MOCK_ACCOUNT_RESULTS as Record<string, unknown>[],
+                queryTotalCount: MOCK_ACCOUNT_RESULTS.length,
+                queryRunning: false,
+                queryPage: 1,
+              })
+            } catch (e) {
+              set({
+                queryError: e instanceof Error ? e.message : 'Query failed',
+                queryRunning: false,
+              })
+            }
+          }, 800)
+        },
 
         setAuth: (isAuthenticated, accountName) =>
           set({ isAuthenticated, accountName }),

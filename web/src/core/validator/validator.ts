@@ -27,7 +27,8 @@ export function validateAlias(alias: string | undefined): ValidationResult | nul
   if (!ALLOWED_ALIAS_CHARS.test(alias)) {
     return {
       level: 'error',
-      message: `Invalid alias: "${alias}". Must start with a letter or underscore and contain only letters, digits, or underscores.`,
+      message: 'validation.invalidAlias',
+      params: { alias },
     }
   }
   return null
@@ -86,16 +87,16 @@ function validateFetch(
   node: FetchNode,
 ): ValidationResult | null {
   if (!childrenOfType(node, 'entity').length) {
-    return { level: 'error', message: 'Missing <entity> under the <fetch>.' }
+    return { level: 'error', message: 'validation.missingEntity' }
   }
   const ds = attr(node, 'datasource')
   if (ds && ds !== 'retained') {
-    return { level: 'error', message: 'Invalid datasource value. Only "retained" is allowed.' }
+    return { level: 'error', message: 'validation.invalidDatasource' }
   }
   if (ds === 'retained' && isFetchAggregate(node)) {
     return {
       level: 'error',
-      message: 'Aggregate queries cannot use Long Term Retention (retained) data.',
+      message: 'validation.aggregateWithRetained',
       helpUrl:
         'https://learn.microsoft.com/en-us/power-apps/maker/data-platform/data-retention-view#limitations-for-retrieval-of-retained-data',
     }
@@ -110,10 +111,10 @@ function validateEntity(
 ): ValidationResult | null {
   const name = attr(node, 'name')
   if (!name) {
-    return { level: 'warning', message: 'Entity name must be specified.' }
+    return { level: 'warning', message: 'validation.entityNameRequired' }
   }
   if (entities && !entities.find((e) => e.logicalName === name)) {
-    return { level: 'warning', message: `Entity "${name}" not found in metadata.` }
+    return { level: 'warning', message: 'validation.entityNotFound', params: { name } }
   }
   return null
 }
@@ -125,7 +126,7 @@ function validateLinkEntity(
   if (attr(root, 'datasource') === 'retained') {
     return {
       level: 'error',
-      message: 'link-entity cannot be used with Long Term Retention data.',
+      message: 'validation.linkEntityWithRetained',
       helpUrl:
         'https://learn.microsoft.com/en-us/power-apps/maker/data-platform/data-retention-view#limitations-for-retrieval-of-retained-data',
     }
@@ -136,7 +137,7 @@ function validateLinkEntity(
   if (!attr(node, 'name') || !attr(node, 'to') || !attr(node, 'from')) {
     return {
       level: 'warning',
-      message: 'link-entity must specify name, from and to attributes.',
+      message: 'validation.linkEntityAttributesRequired',
     }
   }
 
@@ -150,8 +151,7 @@ function validateLinkEntity(
     if (!subTypes.includes(linkType)) {
       return {
         level: 'error',
-        message:
-          'link-entity under a filter must have link-type: any, not any, all, or not all.',
+        message: 'validation.linkEntityFilterLinkType',
         helpUrl:
           'https://learn.microsoft.com/power-apps/developer/data-platform/fetchxml/filter-rows#filter-on-values-in-related-records',
       }
@@ -159,7 +159,7 @@ function validateLinkEntity(
     if (childrenOfType(node, 'attribute').length > 0) {
       return {
         level: 'warning',
-        message: 'link-entity under a filter cannot return attributes.',
+        message: 'validation.linkEntityFilterNoAttributes',
         helpUrl:
           'https://learn.microsoft.com/power-apps/developer/data-platform/fetchxml/filter-rows#filter-on-values-in-related-records',
       }
@@ -167,8 +167,7 @@ function validateLinkEntity(
   } else if (subTypes.includes(linkType)) {
     return {
       level: 'error',
-      message:
-        'link-type any/not any/all/not all can only be used inside a filter.',
+      message: 'validation.linkTypeOnlyInFilter',
       helpUrl:
         'https://learn.microsoft.com/power-apps/developer/data-platform/fetchxml/filter-rows#filter-on-values-in-related-records',
     }
@@ -183,7 +182,7 @@ function validateAttribute(
 ): ValidationResult | null {
   const name = attr(node, 'name')
   if (!name) {
-    return { level: 'warning', message: 'Attribute name must be specified.' }
+    return { level: 'warning', message: 'validation.attributeNameRequired' }
   }
   const aliasCheck = validateAlias(attr(node, 'alias'))
   if (aliasCheck) return aliasCheck
@@ -194,7 +193,8 @@ function validateAttribute(
     if (entity && !entity.attributes?.find((a) => a.logicalName === name)) {
       return {
         level: 'warning',
-        message: `Attribute "${name}" not found in entity "${entityName}".`,
+        message: 'validation.attributeNotFound',
+        params: { name, entityName },
       }
     }
   }
@@ -202,14 +202,14 @@ function validateAttribute(
   const path = findPath(root, node.id)
   const parent = path && path.length > 1 ? path[path.length - 2] : null
   if (parent?.type === 'filter') {
-    return { level: 'error', message: 'Attribute under filter is not allowed.' }
+    return { level: 'error', message: 'validation.attributeUnderFilter' }
   }
 
   if (isFetchAggregate(root)) {
     if (!attr(node, 'alias')) {
       return {
         level: 'warning',
-        message: 'Aggregate attribute should always have an alias.',
+        message: 'validation.aggregateAliasRequired',
         helpUrl:
           'https://learn.microsoft.com/power-apps/developer/data-platform/fetchxml/aggregate-data#about-aggregation',
       }
@@ -217,7 +217,7 @@ function validateAttribute(
   } else if (attr(node, 'alias')) {
     return {
       level: 'info',
-      message: 'Alias is not recommended for non-aggregate queries.',
+      message: 'validation.aliasNotRecommended',
     }
   }
   return null
@@ -225,7 +225,7 @@ function validateAttribute(
 
 function validateFilter(node: FetchNode): ValidationResult | null {
   if (node.children.length === 0) {
-    return { level: 'info', message: 'Filter should have at least one condition.' }
+    return { level: 'info', message: 'validation.filterEmpty' }
   }
   return null
 }
@@ -237,13 +237,14 @@ function validateCondition(
 ): ValidationResult | null {
   const attribute = attr(node, 'attribute')
   if (!attribute) {
-    return { level: 'warning', message: 'Condition attribute must be specified.' }
+    return { level: 'warning', message: 'validation.conditionAttributeRequired' }
   }
   const operator = attr(node, 'operator')
   if (operator === 'contains' || operator === 'does-not-contain') {
     return {
       level: 'error',
-      message: `Operator "${operator}" is not supported by FetchXML.`,
+      message: 'validation.operatorNotSupported',
+      params: { operator },
       helpUrl:
         'https://learn.microsoft.com/power-apps/developer/data-platform/fetchxml/reference/',
     }
@@ -252,7 +253,7 @@ function validateCondition(
   if (entityname && !isLocalEntityRoot(node, root)) {
     return {
       level: 'error',
-      message: 'Cannot specify entityname on a link-entity condition.',
+      message: 'validation.entitynameOnLinkEntity',
     }
   }
   if (!entityname && entities) {
@@ -261,7 +262,8 @@ function validateCondition(
     if (entity && !entity.attributes?.find((a) => a.logicalName === attribute)) {
       return {
         level: 'warning',
-        message: `Attribute "${attribute}" not found in entity "${entityName}".`,
+        message: 'validation.conditionAttributeNotFound',
+        params: { attribute, entityName },
       }
     }
   }
@@ -270,7 +272,7 @@ function validateCondition(
 
 function validateValue(node: FetchNode): ValidationResult | null {
   if (!attr(node, '#text')) {
-    return { level: 'warning', message: 'Value should not be empty.' }
+    return { level: 'warning', message: 'validation.valueEmpty' }
   }
   return null
 }
@@ -287,7 +289,7 @@ function validateOrder(
     if (!attr(node, 'alias')) {
       return {
         level: 'warning',
-        message: 'Order alias must be specified in aggregate queries.',
+        message: 'validation.orderAliasRequired',
         helpUrl:
           'https://learn.microsoft.com/power-apps/developer/data-platform/fetchxml/aggregate-data#order-by',
       }
@@ -295,19 +297,19 @@ function validateOrder(
     if (attr(node, 'attribute')) {
       return {
         level: 'warning',
-        message: 'Order attribute must NOT be specified in aggregate queries.',
+        message: 'validation.orderAttributeNotAllowed',
         helpUrl:
           'https://learn.microsoft.com/power-apps/developer/data-platform/fetchxml/aggregate-data#order-by',
       }
     }
   } else {
     if (!attr(node, 'attribute')) {
-      return { level: 'warning', message: 'Order attribute must be specified.' }
+      return { level: 'warning', message: 'validation.orderAttributeRequired' }
     }
     if (parent?.type === 'link-entity') {
       return {
         level: 'info',
-        message: 'Sorting on a link-entity column triggers legacy paging.',
+        message: 'validation.linkEntityOrderLegacy',
         helpUrl:
           'https://learn.microsoft.com/power-apps/developer/data-platform/fetchxml/order-rows#process-link-entity-orders-first',
       }
@@ -322,7 +324,8 @@ function validateOrder(
       ) {
         return {
           level: 'warning',
-          message: `Order attribute "${attribute}" not found in entity "${entityName}".`,
+          message: 'validation.orderAttributeNotFound',
+          params: { attribute, entityName },
         }
       }
     }

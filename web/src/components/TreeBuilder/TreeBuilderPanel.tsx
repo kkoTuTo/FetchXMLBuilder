@@ -41,12 +41,14 @@ function NodeBadge({ type }: { type: FetchNodeType }) {
 
 // ─── ValidationIcon ───────────────────────────────────────────────────────────
 
-function ValidationIcon({ level, message }: { level: string; message: string }) {
+function ValidationIcon({ level, messageKey, params }: { level: string; messageKey: string; params?: Record<string, string> }) {
+  const { t } = useTranslation()
   const icons = {
     error: <CloseCircleOutlined style={{ color: 'var(--color-error)', fontSize: 11 }} />,
     warning: <WarningOutlined style={{ color: 'var(--color-warning)', fontSize: 11 }} />,
     info: <InfoCircleOutlined style={{ color: 'var(--color-info)', fontSize: 11 }} />,
   }
+  const message = t(messageKey, params)
   return (
     <Tooltip title={message} placement="right">
       <span style={{ flexShrink: 0, lineHeight: 0 }}>
@@ -157,7 +159,7 @@ function TreeNodeRow({ node, depth, isSelected, onSelect }: TreeNodeRowProps) {
           {label || <span style={{ fontFamily: 'var(--font-sans)', color: 'var(--color-text-muted)' }}>{t(`node.${node.type === 'link-entity' ? 'linkEntity' : node.type === 'all-attributes' ? 'allAttributes' : node.type === '#comment' ? 'comment' : node.type}`)}</span>}
         </span>
         {settings.showValidation && validation && (
-          <ValidationIcon level={validation.level} message={validation.message} />
+          <ValidationIcon level={validation.level} messageKey={validation.message} params={validation.params} />
         )}
         {/* Hover actions */}
         {hovered && allowed.length > 0 && (

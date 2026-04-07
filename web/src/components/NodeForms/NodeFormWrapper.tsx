@@ -75,7 +75,7 @@ export function NodeFormWrapper({ nodeId, type, children }: NodeFormWrapperProps
           type={alertType}
           icon={alertIcon}
           showIcon
-          message={validation.message}
+          message={t(validation.message, validation.params)}
           action={
             validation.helpUrl ? (
               <a href={validation.helpUrl} target="_blank" rel="noreferrer"

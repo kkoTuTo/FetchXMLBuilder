@@ -1,12 +1,10 @@
-import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Table, Button, Empty, Pagination, Space, message } from 'antd'
+import { Table, Button, Empty, Pagination, Space, Spin, Alert, message } from 'antd'
 import type { TableColumnsType } from 'antd'
 import { PlayCircleOutlined, DownloadOutlined, LoadingOutlined } from '@ant-design/icons'
 import { useFxbStore } from '@/store/index.ts'
-import { MOCK_ACCOUNT_RESULTS } from '@/services/mock/mockData.ts'
 
-const PAGE_SIZE = 10
+const PAGE_SIZE = 25
 
 function jsonToCsv(data: Record<string, unknown>[]): string {
   if (!data.length) return ''
@@ -17,18 +15,14 @@ function jsonToCsv(data: Record<string, unknown>[]): string {
 
 export function ResultGridPanel() {
   const { t } = useTranslation()
-  const { queryResults, queryRunning, queryError, setQueryResults, setQueryRunning, setQueryError } =
-    useFxbStore()
-  const [page, setPage] = useState(1)
-
-  const handleRun = () => {
-    setQueryRunning(true)
-    setQueryError(null)
-    // Simulate async with mock data
-    setTimeout(() => {
-      setQueryResults(MOCK_ACCOUNT_RESULTS as Record<string, unknown>[], MOCK_ACCOUNT_RESULTS.length)
-    }, 800)
-  }
+  const {
+    queryResults,
+    queryRunning,
+    queryError,
+    queryPage,
+    runQuery,
+    setQueryPage,
+  } = useFxbStore()
 
   const handleExportCsv = () => {
     const csv = jsonToCsv(queryResults)
@@ -53,7 +47,7 @@ export function ResultGridPanel() {
     void message.success('JSON exported', 1.5)
   }
 
-  const pageData = queryResults.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const pageData = queryResults.slice((queryPage - 1) * PAGE_SIZE, queryPage * PAGE_SIZE)
 
   const columns: TableColumnsType<Record<string, unknown>> =
     queryResults.length > 0
@@ -87,7 +81,7 @@ export function ResultGridPanel() {
         <Button
           type="primary"
           icon={queryRunning ? <LoadingOutlined /> : <PlayCircleOutlined />}
-          onClick={handleRun}
+          onClick={runQuery}
           disabled={queryRunning}
           style={{
             background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
@@ -140,18 +134,28 @@ export function ResultGridPanel() {
 
       {/* Error */}
       {queryError && (
+        <Alert
+          type="error"
+          message={queryError}
+          showIcon
+          style={{ flexShrink: 0, fontSize: 12 }}
+        />
+      )}
+
+      {/* Loading overlay */}
+      {queryRunning && (
         <div
           style={{
-            padding: '8px 12px',
-            background: 'rgba(239,68,68,0.1)',
-            border: '1px solid rgba(239,68,68,0.2)',
-            borderRadius: 8,
-            color: '#ef4444',
-            fontSize: 12,
-            flexShrink: 0,
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(0,0,0,0.2)',
+            zIndex: 10,
           }}
         >
-          ⚠ {queryError}
+          <Spin size="large" />
         </div>
       )}
 
@@ -171,7 +175,6 @@ export function ResultGridPanel() {
                 rowKey={(r) => String(Object.values(r)[0])}
                 pagination={false}
                 size="small"
-                loading={queryRunning}
                 scroll={{ x: 'max-content' }}
                 style={{ fontSize: 12 }}
               />
@@ -179,10 +182,10 @@ export function ResultGridPanel() {
             {queryResults.length > PAGE_SIZE && (
               <div style={{ display: 'flex', justifyContent: 'flex-end', flexShrink: 0 }}>
                 <Pagination
-                  current={page}
+                  current={queryPage}
                   pageSize={PAGE_SIZE}
                   total={queryResults.length}
-                  onChange={setPage}
+                  onChange={setQueryPage}
                   size="small"
                   showSizeChanger={false}
                 />
