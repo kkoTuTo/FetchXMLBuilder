@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { generateCode, generateCSharpCode, generateCSharpFetchExpression } from '../core/codegen/generators.ts'
+import { generateCSharpQueryExpression } from '../core/codegen/csharpQueryExpression.ts'
 
 const SAMPLE_XML = `<?xml version="1.0"?>
 <fetch top="5" mapping="logical">
@@ -10,6 +11,19 @@ const SAMPLE_XML = `<?xml version="1.0"?>
       <condition attribute="statecode" operator="eq" value="0" />
     </filter>
     <order attribute="name" descending="false" />
+  </entity>
+</fetch>`
+
+const LINK_XML = `<?xml version="1.0"?>
+<fetch>
+  <entity name="account">
+    <attribute name="name" />
+    <link-entity name="contact" from="accountid" to="accountid" alias="c" link-type="outer">
+      <attribute name="firstname" />
+      <filter>
+        <condition attribute="statecode" operator="eq" value="0" />
+      </filter>
+    </link-entity>
   </entity>
 </fetch>`
 
@@ -31,38 +45,26 @@ describe('Code Generators', () => {
 
   it('csharp FetchXML style uses verbatim string with "" quoting', () => {
     const out = generateCSharpCode(SAMPLE_XML, 'fetchxml')
-    // Should use C# verbatim interpolated string
     expect(out).toContain('$@"')
-    // XML double-quotes must be escaped as "" (verbatim string convention)
     expect(out).toContain('name=""account""')
-    // Variable name should be fetchXml
     expect(out).toContain('var fetchXml =')
-    // Should NOT include FetchExpression line in fetchxml style
     expect(out).not.toContain('new FetchExpression')
   })
 
   it('csharp FetchExpression style uses single-quoted XML and FetchExpression constructor', () => {
     const out = generateCSharpFetchExpression(SAMPLE_XML)
-    // Should use C# verbatim interpolated string
     expect(out).toContain('$@"')
-    // XML double-quotes must be replaced with single quotes
     expect(out).toContain("name='account'")
-    // Variable name should be fetch
     expect(out).toContain('var fetch =')
-    // Must include FetchExpression construction
     expect(out).toContain('new FetchExpression(fetch)')
   })
 
   it('javascript generator returns array-join format with single-quoted attributes', () => {
     const out = generateCode('javascript', SAMPLE_XML)
-    // Should use array-join format (matching JavascriptCodeGenerator.cs)
     expect(out).toContain('var fetchXml = [')
     expect(out).toContain('].join("")')
-    // Each element should be a JSON string
     expect(out).toContain('"<fetch')
-    // Attributes must use single quotes
     expect(out).toContain("name='account'")
-    // No XML declaration in JS output
     expect(out).not.toContain('<?xml')
   })
 
@@ -76,5 +78,83 @@ describe('Code Generators', () => {
   it('powerfx generator returns ClearCollect code', () => {
     const out = generateCode('powerfx', SAMPLE_XML)
     expect(out).toContain('ClearCollect')
+  })
+
+  // ── QueryExpression generator tests ──────────────────────────────────────
+
+  describe('QueryExpression generator', () => {
+    it('line-by-line generates correct QueryExpression code', () => {
+      const out = generateCSharpQueryExpression(SAMPLE_XML, { style: 'QueryExpression', objectInitializer: false, includeComments: false, filterVariables: false })
+      expect(out).toContain('var query = new QueryExpression("account");')
+      expect(out).toContain('query.TopCount = 5;')
+      expect(out).toContain('query.ColumnSet.AddColumns("name", "emailaddress1");')
+      expect(out).toContain('query.Criteria.AddCondition("statecode", ConditionOperator.Equal, 0);')
+      expect(out).toContain('query.AddOrder("name", OrderType.Ascending);')
+    })
+
+    it('object-initializer generates QueryExpression with braces', () => {
+      const out = generateCSharpQueryExpression(SAMPLE_XML, { style: 'QueryExpression', objectInitializer: true, includeComments: false, filterVariables: false })
+      expect(out).toContain('var query = new QueryExpression("account")')
+      expect(out).toContain('ColumnSet = new ColumnSet("name", "emailaddress1")')
+      expect(out).toContain('Criteria =')
+    })
+
+    it('QueryByAttribute generates correct code', () => {
+      const out = generateCSharpQueryExpression(SAMPLE_XML, { style: 'QueryByAttribute', objectInitializer: false, includeComments: false, filterVariables: false })
+      expect(out).toContain('new QueryByAttribute("account")')
+      expect(out).toContain('AddAttributeValue("statecode"')
+    })
+
+    it('FluentQueryExpression generates correct code', () => {
+      const out = generateCSharpQueryExpression(SAMPLE_XML, { style: 'FluentQueryExpression', objectInitializer: false, includeComments: false, filterVariables: false })
+      expect(out).toContain('new Query("account")')
+      expect(out).toContain('ConditionOperator.Equal')
+    })
+
+    it('QueryExpressionFactory generates correct code', () => {
+      const out = generateCSharpQueryExpression(SAMPLE_XML, { style: 'QueryExpressionFactory', objectInitializer: false, includeComments: false, filterVariables: false })
+      expect(out).toContain('QueryExpressionFactory.Create("account"')
+    })
+
+    it('includes comments when requested', () => {
+      const out = generateCSharpQueryExpression(SAMPLE_XML, { style: 'QueryExpression', objectInitializer: false, includeComments: true, filterVariables: false })
+      expect(out).toContain('//')
+    })
+
+    it('extracts filter variables when requested', () => {
+      const out = generateCSharpQueryExpression(SAMPLE_XML, { style: 'QueryExpression', objectInitializer: false, includeComments: false, filterVariables: true })
+      expect(out).toContain('var fetchData =')
+      expect(out).toContain('fetchData.statecode')
+    })
+
+    it('handles link entities in line-by-line mode', () => {
+      const out = generateCSharpQueryExpression(LINK_XML, { style: 'QueryExpression', objectInitializer: false, includeComments: false, filterVariables: false })
+      expect(out).toContain('AddLink("contact"')
+      expect(out).toContain('JoinOperator.LeftOuter')
+    })
+
+    it('handles link entities in object-initializer mode', () => {
+      const out = generateCSharpQueryExpression(LINK_XML, { style: 'QueryExpression', objectInitializer: true, includeComments: false, filterVariables: false })
+      expect(out).toContain('LinkEntities =')
+      expect(out).toContain('new LinkEntity')
+    })
+
+    it('returns note for non-LateBound flavors', () => {
+      const out = generateCSharpQueryExpression(SAMPLE_XML, { style: 'QueryExpression', flavor: 'EarlyBound' })
+      expect(out).toContain('/*')
+      expect(out).toContain('CRM metadata')
+    })
+
+    it('returns note for OrganizationServiceContext', () => {
+      const out = generateCSharpQueryExpression(SAMPLE_XML, { style: 'OrganizationServiceContext' })
+      expect(out).toContain('/*')
+    })
+
+    it('applies indent level', () => {
+      const out = generateCSharpQueryExpression(SAMPLE_XML, { style: 'QueryExpression', objectInitializer: false, includeComments: false, filterVariables: false, indents: 2 })
+      // Each line should start with 2x4-space indent
+      const firstLine = out.split('\n')[0]
+      expect(firstLine).toMatch(/^        /)
+    })
   })
 })

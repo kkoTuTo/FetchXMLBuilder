@@ -5,6 +5,10 @@
 
 import { serialiseFetchXml, parseFetchXml } from '../parser/xmlParser.ts'
 import type { FetchNode } from '../ast/types.ts'
+import { generateCSharpQueryExpression } from './csharpQueryExpression.ts'
+import type { QExOptions } from './csharpQueryExpression.ts'
+export type { QExStyle, QExFlavor, QExOptions } from './csharpQueryExpression.ts'
+export { QEXSTYLE_LABELS, QEXSTYLE_INFO, QEXFLAVOR_LABELS } from './csharpQueryExpression.ts'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -320,7 +324,10 @@ export const CODE_LANGUAGE_LABELS: Record<CodeLanguage, string> = {
 }
 
 export interface CodegenOptions {
+  /** Only used when lang='csharp' and qexOptions is not set (legacy FetchXML/FetchExpression toggle) */
   csharpStyle?: CSharpStyle
+  /** Full QEx / C# code generation options (supercedes csharpStyle when set) */
+  qexOptions?: QExOptions
   baseUrl?: string
 }
 
@@ -330,8 +337,22 @@ export function generateCode(lang: CodeLanguage, fetchXml: string, options?: Cod
       return generateFetchXml(fetchXml)
     case 'odata':
       return generateODataUrl(fetchXml, options?.baseUrl)
-    case 'csharp':
+    case 'csharp': {
+      const qex = options?.qexOptions
+      if (qex) {
+        // Full QEx path (from style dropdown)
+        const style = qex.style ?? 'FetchXML'
+        if (style === 'FetchXML') {
+          return generateCSharpFetchXml(fetchXml)
+        }
+        if (style === 'FetchExpression') {
+          return generateCSharpFetchExpression(fetchXml)
+        }
+        return generateCSharpQueryExpression(fetchXml, qex)
+      }
+      // Legacy simple toggle
       return generateCSharpCode(fetchXml, options?.csharpStyle ?? 'fetchxml')
+    }
     case 'javascript':
       return generateJavaScript(fetchXml)
     case 'powerfx':

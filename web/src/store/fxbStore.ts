@@ -8,7 +8,7 @@ import { persist, devtools } from 'zustand/middleware'
 import type { FetchNode } from '@/core/ast/types.ts'
 import type { ValidationResult } from '@/core/ast/types.ts'
 import type { EntityMeta } from '@/core/validator/index.ts'
-import type { CodeLanguage } from '@/core/codegen/index.ts'
+import type { CodeLanguage, QExStyle, QExFlavor } from '@/core/codegen/index.ts'
 import {
   createDefaultAst,
   createEmptyNode,
@@ -38,7 +38,16 @@ export interface AppSettings {
   language: string
   orgUrl: string
   baseApiUrl: string
+  /** Legacy simple C# toggle (fetchxml | fetchexpression).
+   *  Superseded by qexStyle when the full options panel is used. */
   csharpStyle: 'fetchxml' | 'fetchexpression'
+  // ── Full C# code generation options (matching original plugin) ───────────
+  qexStyle: QExStyle
+  qexFlavor: QExFlavor
+  qexObjectInitializer: boolean
+  qexIndents: number
+  qexIncludeComments: boolean
+  qexFilterVariables: boolean
 }
 
 export interface FxbState {
@@ -114,6 +123,12 @@ const DEFAULT_SETTINGS: AppSettings = {
   orgUrl: '',
   baseApiUrl: 'https://[org].api.crm.dynamics.com/api/data/v9.2',
   csharpStyle: 'fetchxml',
+  qexStyle: 'FetchXML',
+  qexFlavor: 'LateBound',
+  qexObjectInitializer: false,
+  qexIndents: 0,
+  qexIncludeComments: true,
+  qexFilterVariables: true,
 }
 
 export const useFxbStore = create<FxbState>()(
