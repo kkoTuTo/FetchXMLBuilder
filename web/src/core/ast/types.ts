@@ -21,6 +21,9 @@ export type LinkType =
   | 'not any'
   | 'all'
   | 'not all'
+  | 'exists'
+  | 'in'
+  | 'matchfirstrowusingcrossapply'
 
 export type AggregateType =
   | 'count'
@@ -60,14 +63,17 @@ export interface FetchAttrs {
   version?: string
   count?: string
   page?: string
-  paging_cookie?: string
+  'paging-cookie'?: string
   top?: string
   aggregate?: 'true' | 'false'
   distinct?: 'true' | 'false'
   'no-lock'?: 'true' | 'false'
-  datasource?: '' | 'archive'
+  datasource?: '' | 'retained'
   returntotalrecordcount?: 'true' | 'false'
   mapping?: 'logical' | 'internal'
+  latematerialize?: 'true' | 'false'
+  useraworderby?: 'true' | 'false'
+  aggregatelimit?: string
 }
 
 export interface EntityAttrs {

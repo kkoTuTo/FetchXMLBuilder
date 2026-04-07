@@ -89,13 +89,13 @@ function validateFetch(
     return { level: 'error', message: 'Missing <entity> under the <fetch>.' }
   }
   const ds = attr(node, 'datasource')
-  if (ds && ds !== 'archive') {
-    return { level: 'error', message: 'Invalid datasource value. Only "archive" is allowed.' }
+  if (ds && ds !== 'retained') {
+    return { level: 'error', message: 'Invalid datasource value. Only "retained" is allowed.' }
   }
-  if (ds === 'archive' && isFetchAggregate(node)) {
+  if (ds === 'retained' && isFetchAggregate(node)) {
     return {
       level: 'error',
-      message: 'Aggregate queries cannot use Long Term Retention (archive) data.',
+      message: 'Aggregate queries cannot use Long Term Retention (retained) data.',
       helpUrl:
         'https://learn.microsoft.com/en-us/power-apps/maker/data-platform/data-retention-view#limitations-for-retrieval-of-retained-data',
     }
@@ -122,7 +122,7 @@ function validateLinkEntity(
   node: FetchNode,
   root: FetchNode,
 ): ValidationResult | null {
-  if (attr(root, 'datasource') === 'archive') {
+  if (attr(root, 'datasource') === 'retained') {
     return {
       level: 'error',
       message: 'link-entity cannot be used with Long Term Retention data.',

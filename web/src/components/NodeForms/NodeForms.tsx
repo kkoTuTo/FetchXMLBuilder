@@ -3,7 +3,8 @@
  * Each form reads/writes node.attrs through the Zustand store.
  */
 import { useTranslation } from 'react-i18next'
-import { Input } from 'antd'
+import { Input, Button, Space } from 'antd'
+import { PlusOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useFxbStore } from '@/store/index.ts'
 import { findNode } from '@/core/ast/index.ts'
 import { NodeFormWrapper } from './NodeFormWrapper.tsx'
@@ -31,8 +32,8 @@ function FetchForm({ id }: { id: string }) {
       <FieldRow label={t('form.page')}>
         <FormInput value={a.page ?? ''} onChange={(v) => up('page', v)} placeholder="1" mono />
       </FieldRow>
-      <FieldRow label={t('form.pageSize')}>
-        <FormInput value={a['count'] ?? ''} onChange={(v) => up('count', v)} placeholder="5000" mono />
+      <FieldRow label="Paging Cookie">
+        <FormInput value={a['paging-cookie'] ?? ''} onChange={(v) => up('paging-cookie', v)} placeholder="(from previous page response)" mono />
       </FieldRow>
       <FieldRow label={t('form.datasource')}>
         <FormSelect
@@ -40,7 +41,7 @@ function FetchForm({ id }: { id: string }) {
           onChange={(v) => up('datasource', v)}
           options={[
             { value: '', label: '(default)' },
-            { value: 'archive', label: 'archive (Long Term Retention)' },
+            { value: 'retained', label: 'retained (Long Term Retention)' },
           ]}
         />
       </FieldRow>
@@ -53,6 +54,9 @@ function FetchForm({ id }: { id: string }) {
             { value: 'internal', label: 'internal' },
           ]}
         />
+      </FieldRow>
+      <FieldRow label="Aggregate Limit">
+        <FormInput value={a.aggregatelimit ?? ''} onChange={(v) => up('aggregatelimit', v)} placeholder="e.g. 5000" mono />
       </FieldRow>
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
         <FieldRow label={t('form.distinct')}>
@@ -77,6 +81,18 @@ function FetchForm({ id }: { id: string }) {
           <FormSwitch
             checked={a.returntotalrecordcount === 'true'}
             onChange={(v) => up('returntotalrecordcount', v ? 'true' : 'false')}
+          />
+        </FieldRow>
+        <FieldRow label="Late Materialize">
+          <FormSwitch
+            checked={a.latematerialize === 'true'}
+            onChange={(v) => up('latematerialize', v ? 'true' : 'false')}
+          />
+        </FieldRow>
+        <FieldRow label="Use Raw Order By">
+          <FormSwitch
+            checked={a.useraworderby === 'true'}
+            onChange={(v) => up('useraworderby', v ? 'true' : 'false')}
           />
         </FieldRow>
       </div>
@@ -145,7 +161,10 @@ function LinkEntityForm({ id }: { id: string }) {
         <FormSelect
           value={a['link-type'] ?? 'inner'}
           onChange={(v) => up('link-type', v)}
-          options={['inner','outer','any','not any','all','not all'].map((v) => ({ value: v, label: v }))}
+          options={[
+            'inner','outer','any','not any','all','not all',
+            'exists','in','matchfirstrowusingcrossapply',
+          ].map((v) => ({ value: v, label: v }))}
         />
       </FieldRow>
       <FieldRow label={t('form.intersect')}>
@@ -266,7 +285,7 @@ function FilterForm({ id }: { id: string }) {
 
 function ConditionForm({ id }: { id: string }) {
   const { t } = useTranslation()
-  const { root, updateNodeAttrs } = useFxbStore()
+  const { root, updateNodeAttrs, addChildNode, removeNode } = useFxbStore()
   const node = findNode(root, id)
   if (!node) return null
   const a = node.attrs
@@ -295,6 +314,85 @@ function ConditionForm({ id }: { id: string }) {
   const operatorOptions = CONDITION_OPERATORS.map((op) => ({ value: op.value, label: op.label }))
   const selectedOp = CONDITION_OPERATORS.find((op) => op.value === (a.operator ?? 'eq'))
   const showValue = selectedOp?.hasValue ?? true
+  const isMultiValue = selectedOp?.multiValue ?? false
+  const isTwoValues = selectedOp?.requiresTwoValues ?? false
+
+  // Current <value> child nodes
+  const valueChildren = node.children.filter((c) => c.type === 'value')
+
+  const renderValueUI = () => {
+    if (!showValue) return null
+
+    if (isMultiValue && isTwoValues) {
+      // Between / not-between / in-fiscal-period-and-year: exactly 2 value nodes
+      const v0 = valueChildren[0]
+      const v1 = valueChildren[1]
+      return (
+        <FieldRow label={t('form.value')}>
+          <Space direction="vertical" style={{ width: '100%' }}>
+            <FormInput
+              value={v0?.attrs['#text'] ?? ''}
+              onChange={(v) => {
+                if (v0) updateNodeAttrs(v0.id, { '#text': v })
+                else addChildNode(id, 'value')
+              }}
+              placeholder="From"
+              mono
+            />
+            <FormInput
+              value={v1?.attrs['#text'] ?? ''}
+              onChange={(v) => {
+                if (v1) updateNodeAttrs(v1.id, { '#text': v })
+                else addChildNode(id, 'value')
+              }}
+              placeholder="To"
+              mono
+            />
+          </Space>
+        </FieldRow>
+      )
+    }
+
+    if (isMultiValue) {
+      // In / not-in / contain-values / not-contain-values: dynamic list
+      return (
+        <FieldRow label={t('form.value')}>
+          <Space direction="vertical" style={{ width: '100%' }}>
+            {valueChildren.map((vc) => (
+              <Space key={vc.id} style={{ width: '100%' }}>
+                <FormInput
+                  value={vc.attrs['#text'] ?? ''}
+                  onChange={(v) => updateNodeAttrs(vc.id, { '#text': v })}
+                  placeholder={t('form.placeholder.value')}
+                  mono
+                />
+                <Button
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={() => removeNode(vc.id)}
+                />
+              </Space>
+            ))}
+            <Button
+              size="small"
+              icon={<PlusOutlined />}
+              onClick={() => addChildNode(id, 'value')}
+            >
+              Add value
+            </Button>
+          </Space>
+        </FieldRow>
+      )
+    }
+
+    // Single value
+    return (
+      <FieldRow label={t('form.value')}>
+        <FormInput value={a.value ?? ''} onChange={(v) => up('value', v)} placeholder={t('form.placeholder.value')} mono />
+      </FieldRow>
+    )
+  }
 
   return (
     <NodeFormWrapper nodeId={id} type="condition">
@@ -304,11 +402,7 @@ function ConditionForm({ id }: { id: string }) {
       <FieldRow label={t('form.operator')}>
         <FormSelect value={a.operator ?? 'eq'} onChange={(v) => up('operator', v)} options={operatorOptions} />
       </FieldRow>
-      {showValue && (
-        <FieldRow label={t('form.value')}>
-          <FormInput value={a.value ?? ''} onChange={(v) => up('value', v)} placeholder={t('form.placeholder.value')} mono />
-        </FieldRow>
-      )}
+      {renderValueUI()}
       <FieldRow label={t('form.entityname')}>
         <FormInput value={a.entityname ?? ''} onChange={(v) => up('entityname', v)} placeholder="(cross-entity)" mono />
       </FieldRow>
