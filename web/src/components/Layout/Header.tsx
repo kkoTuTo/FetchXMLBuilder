@@ -170,25 +170,6 @@ export function Header() {
           </button>
         </Tooltip>
       </div>
-
-      <style>{`
-        .icon-btn {
-          display: flex; align-items: center; gap: 4px;
-          padding: 6px 8px;
-          border-radius: var(--radius-sm);
-          border: none;
-          cursor: pointer;
-          background: transparent;
-          color: var(--color-text-secondary);
-          font-family: var(--font-sans);
-          font-size: 13px;
-          transition: all var(--transition);
-        }
-        .icon-btn:hover {
-          background: var(--color-surface-2);
-          color: var(--color-text);
-        }
-      `}</style>
     </header>
   )
 }

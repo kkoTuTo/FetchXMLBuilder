@@ -30,6 +30,8 @@ const LANGS = Object.keys(CODE_LANGUAGE_LABELS) as CodeLanguage[]
 const STYLE_NO_FLAVOR: QExStyle[] = ['FetchXML', 'FetchExpression', 'OrganizationServiceContext']
 /** Styles that cannot use Object Initializer / Line-by-line */
 const STYLE_NO_OI: QExStyle[] = ['FetchXML', 'FetchExpression', 'OrganizationServiceContext', 'QueryExpressionFactory']
+/** Styles that support Filter Variables */
+const STYLE_SUPPORTS_FILTER_VARS: QExStyle[] = ['QueryExpression', 'FluentQueryExpression', 'QueryByAttribute', 'QueryExpressionFactory']
 
 const STYLE_OPTIONS = (Object.keys(QEXSTYLE_LABELS) as QExStyle[]).map((key) => ({
   value: key,
@@ -48,12 +50,12 @@ export function CodeOutputPanel() {
   const [copied, setCopied] = useState(false)
   const isDark = settings.theme === 'dark'
 
-  const qexStyle: QExStyle = settings.qexStyle ?? 'FetchXML'
-  const qexFlavor: QExFlavor = settings.qexFlavor ?? 'LateBound'
-  const qexOI = settings.qexObjectInitializer ?? false
-  const qexIndents = settings.qexIndents ?? 0
-  const qexComments = settings.qexIncludeComments ?? true
-  const qexFilterVars = settings.qexFilterVariables ?? true
+  const qexStyle: QExStyle = settings.qexStyle
+  const qexFlavor: QExFlavor = settings.qexFlavor
+  const qexOI = settings.qexObjectInitializer
+  const qexIndents = settings.qexIndents
+  const qexComments = settings.qexIncludeComments
+  const qexFilterVars = settings.qexFilterVariables
 
   const isCSharp = activeCodeLang === 'csharp'
   const flavorEnabled = isCSharp && !STYLE_NO_FLAVOR.includes(qexStyle)
@@ -219,7 +221,7 @@ export function CodeOutputPanel() {
               <Checkbox
                 checked={qexFilterVars}
                 onChange={(e) => updateSettings({ qexFilterVariables: e.target.checked })}
-                disabled={!oiEnabled && !['QueryExpression', 'FluentQueryExpression', 'QueryByAttribute', 'QueryExpressionFactory'].includes(qexStyle)}
+                disabled={!STYLE_SUPPORTS_FILTER_VARS.includes(qexStyle)}
                 style={{ fontSize: 11 }}
               >
                 Filter Variables

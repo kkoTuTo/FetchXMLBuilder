@@ -10,6 +10,28 @@ import { findNode } from '@/core/ast/index.ts'
 import { NodeFormWrapper } from './NodeFormWrapper.tsx'
 import { FieldRow, FormInput, FormSelect, FormSwitch } from './FormFields.tsx'
 import { MOCK_ENTITIES, getMockAttributes, CONDITION_OPERATORS } from '@/services/mock/mockData.ts'
+import type { FetchNode } from '@/core/ast/types.ts'
+
+// ─── Shared helpers ───────────────────────────────────────────────────────────
+
+/** Walk ancestors of `targetId` and return the closest entity/link-entity name. */
+function findParentEntityName(root: FetchNode, targetId: string): string {
+  const walk = (node: FetchNode, ancestors: FetchNode[]): FetchNode[] | null => {
+    if (node.id === targetId) return ancestors
+    for (const child of node.children) {
+      const result = walk(child, [...ancestors, node])
+      if (result) return result
+    }
+    return null
+  }
+  const path = walk(root, []) ?? []
+  for (let i = path.length - 1; i >= 0; i--) {
+    if (path[i].type === 'entity' || path[i].type === 'link-entity') {
+      return path[i].attrs.name ?? ''
+    }
+  }
+  return ''
+}
 
 // ─── FetchForm ────────────────────────────────────────────────────────────────
 
@@ -184,26 +206,7 @@ function AttributeForm({ id }: { id: string }) {
   const a = node.attrs
   const up = (k: string, v: string) => updateNodeAttrs(id, { [k]: v })
 
-  // Determine parent entity name
-  const findParentEntityName = (): string => {
-    const walk = (n: typeof root, target: string, ancestors: typeof root[]): typeof root[] | null => {
-      if (n.id === target) return ancestors
-      for (const c of n.children) {
-        const r = walk(c, target, [...ancestors, n])
-        if (r) return r
-      }
-      return null
-    }
-    const path = walk(root, id, []) ?? []
-    for (let i = path.length - 1; i >= 0; i--) {
-      if (path[i].type === 'entity' || path[i].type === 'link-entity') {
-        return path[i].attrs.name ?? ''
-      }
-    }
-    return ''
-  }
-
-  const parentEntity = findParentEntityName()
+  const parentEntity = findParentEntityName(root, id)
   const attrOptions = getMockAttributes(parentEntity).map((attr) => ({ value: attr.logicalName, label: attr.logicalName }))
 
   return (
@@ -322,25 +325,7 @@ function ConditionForm({ id }: { id: string }) {
   const a = node.attrs
   const up = (k: string, v: string) => updateNodeAttrs(id, { [k]: v })
 
-  const findParentEntityName = (): string => {
-    const walk = (n: typeof root, target: string, ancestors: typeof root[]): typeof root[] | null => {
-      if (n.id === target) return ancestors
-      for (const c of n.children) {
-        const r = walk(c, target, [...ancestors, n])
-        if (r) return r
-      }
-      return null
-    }
-    const path = walk(root, id, []) ?? []
-    for (let i = path.length - 1; i >= 0; i--) {
-      if (path[i].type === 'entity' || path[i].type === 'link-entity') {
-        return path[i].attrs.name ?? ''
-      }
-    }
-    return ''
-  }
-
-  const parentEntity = findParentEntityName()
+  const parentEntity = findParentEntityName(root, id)
   const attrOptions = getMockAttributes(parentEntity).map((attr) => ({ value: attr.logicalName, label: attr.logicalName }))
   const operatorOptions = CONDITION_OPERATORS.map((op) => ({ value: op.value, label: op.label }))
   const selectedOp = CONDITION_OPERATORS.find((op) => op.value === (a.operator ?? 'eq'))
@@ -451,23 +436,7 @@ function OrderForm({ id }: { id: string }) {
   const a = node.attrs
   const up = (k: string, v: string) => updateNodeAttrs(id, { [k]: v })
 
-  const findParentEntityName = (): string => {
-    const walk = (n: typeof root, target: string, ancestors: typeof root[]): typeof root[] | null => {
-      if (n.id === target) return ancestors
-      for (const c of n.children) {
-        const r = walk(c, target, [...ancestors, n])
-        if (r) return r
-      }
-      return null
-    }
-    const path = walk(root, id, []) ?? []
-    for (let i = path.length - 1; i >= 0; i--) {
-      if (path[i].type === 'entity' || path[i].type === 'link-entity') return path[i].attrs.name ?? ''
-    }
-    return ''
-  }
-
-  const parentEntity = findParentEntityName()
+  const parentEntity = findParentEntityName(root, id)
   const attrOptions = getMockAttributes(parentEntity).map((attr) => ({ value: attr.logicalName, label: attr.logicalName }))
 
   return (

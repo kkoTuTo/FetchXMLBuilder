@@ -18,8 +18,7 @@ import {
   moveNode,
   cloneNode,
 } from '@/core/ast/index.ts'
-import { serialiseFetchXml } from '@/core/parser/index.ts'
-import { parseFetchXml } from '@/core/parser/index.ts'
+import { serialiseFetchXml, parseFetchXml } from '@/core/parser/index.ts'
 import { validateTree } from '@/core/validator/index.ts'
 import { MOCK_ACCOUNT_RESULTS } from '@/services/mock/mockData.ts'
 

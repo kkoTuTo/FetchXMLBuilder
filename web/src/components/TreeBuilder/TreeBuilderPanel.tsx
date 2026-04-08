@@ -1,4 +1,4 @@
-import { useState, useCallback, type CSSProperties } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Dropdown, Tooltip } from 'antd'
 import type { MenuProps } from 'antd'
@@ -10,7 +10,7 @@ import {
 import { useFxbStore } from '@/store/index.ts'
 import type { FetchNode, FetchNodeType } from '@/core/ast/types.ts'
 import { getAllowedChildTypes, getCapability } from '@/core/ast/index.ts'
-import { NODE_COLORS, NODE_ABBR, getNodeLabel } from './nodeColors.ts'
+import { NODE_COLORS, NODE_ABBR, NODE_LABEL_KEYS, getNodeLabel } from './nodeColors.ts'
 
 // ─── NodeBadge ────────────────────────────────────────────────────────────────
 
@@ -81,7 +81,7 @@ function TreeNodeRow({ node, depth, isSelected, onSelect }: TreeNodeRowProps) {
   const addMenu: MenuProps = {
     items: allowed.map((type) => ({
       key: type,
-      label: t(`node.${type === 'link-entity' ? 'linkEntity' : type === 'all-attributes' ? 'allAttributes' : type === '#comment' ? 'comment' : type}`),
+      label: t(NODE_LABEL_KEYS[type]),
       onClick: () => addChildNode(node.id, type),
     })),
   }
@@ -156,7 +156,7 @@ function TreeNodeRow({ node, depth, isSelected, onSelect }: TreeNodeRowProps) {
             color: label ? 'var(--color-text)' : 'var(--color-text-muted)',
           }}
         >
-          {label || <span style={{ fontFamily: 'var(--font-sans)', color: 'var(--color-text-muted)' }}>{t(`node.${node.type === 'link-entity' ? 'linkEntity' : node.type === 'all-attributes' ? 'allAttributes' : node.type === '#comment' ? 'comment' : node.type}`)}</span>}
+          {label || <span style={{ fontFamily: 'var(--font-sans)', color: 'var(--color-text-muted)' }}>{t(NODE_LABEL_KEYS[node.type])}</span>}
         </span>
         {settings.showValidation && validation && (
           <ValidationIcon level={validation.level} messageKey={validation.message} params={validation.params} />
@@ -199,11 +199,6 @@ function TreeNodeItem({ node, depth = 0 }: TreeNodeProps) {
   const [expanded, setExpanded] = useState(true)
   const hasChildren = node.children.length > 0
 
-  const handleSelect = useCallback(
-    (id: string) => selectNode(id),
-    [selectNode],
-  )
-
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -236,7 +231,7 @@ function TreeNodeItem({ node, depth = 0 }: TreeNodeProps) {
             node={node}
             depth={0}
             isSelected={selectedNodeId === node.id}
-            onSelect={handleSelect}
+            onSelect={selectNode}
           />
         </div>
       </div>

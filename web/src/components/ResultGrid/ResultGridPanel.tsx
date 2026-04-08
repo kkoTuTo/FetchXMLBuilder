@@ -13,6 +13,16 @@ function jsonToCsv(data: Record<string, unknown>[]): string {
   return [keys.join(','), ...rows].join('\n')
 }
 
+function downloadBlob(content: string, filename: string, mimeType: string) {
+  const blob = new Blob([content], { type: mimeType })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = filename
+  anchor.click()
+  URL.revokeObjectURL(url)
+}
+
 export function ResultGridPanel() {
   const { t } = useTranslation()
   const {
@@ -25,25 +35,12 @@ export function ResultGridPanel() {
   } = useFxbStore()
 
   const handleExportCsv = () => {
-    const csv = jsonToCsv(queryResults)
-    const blob = new Blob([csv], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'fetchxml-results.csv'
-    a.click()
-    URL.revokeObjectURL(url)
+    downloadBlob(jsonToCsv(queryResults), 'fetchxml-results.csv', 'text/csv')
     void message.success('CSV exported', 1.5)
   }
 
   const handleExportJson = () => {
-    const blob = new Blob([JSON.stringify(queryResults, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'fetchxml-results.json'
-    a.click()
-    URL.revokeObjectURL(url)
+    downloadBlob(JSON.stringify(queryResults, null, 2), 'fetchxml-results.json', 'application/json')
     void message.success('JSON exported', 1.5)
   }
 

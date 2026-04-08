@@ -1,5 +1,6 @@
+import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Switch, Select } from 'antd'
+import { Switch, Select, Input } from 'antd'
 import { useFxbStore } from '@/store/index.ts'
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '@/i18n/index.ts'
 import i18n from '@/i18n/index.ts'
@@ -26,7 +27,7 @@ function SectionTitle({ title }: { title: string }) {
 interface SettingRowProps {
   label: string
   hint?: string
-  children: React.ReactNode
+  children: ReactNode
 }
 
 function SettingRow({ label, hint, children }: SettingRowProps) {
@@ -166,20 +167,15 @@ export function SettingsPanel() {
       <div style={{ marginTop: 24 }}>
         <SectionTitle title="Dataverse Connection" />
         <SettingRow label={t('auth.orgUrl')}>
-          <input
+          <Input
+            size="small"
             value={settings.orgUrl}
             onChange={(e) => updateSettings({ orgUrl: e.target.value })}
             placeholder={t('auth.orgUrlPlaceholder')}
             style={{
-              padding: '5px 10px',
-              borderRadius: 8,
-              border: '1px solid var(--color-border)',
-              background: 'var(--color-surface-2)',
-              color: 'var(--color-text)',
-              fontSize: 12,
-              fontFamily: 'var(--font-mono)',
               width: 240,
-              outline: 'none',
+              fontFamily: 'var(--font-mono)',
+              fontSize: 12,
             }}
           />
         </SettingRow>
