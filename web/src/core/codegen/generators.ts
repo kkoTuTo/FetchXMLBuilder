@@ -158,8 +158,8 @@ function getODataOrder(entity: FetchNode): string {
     .filter((o) => a(o, 'attribute'))
     .map((o) => {
       const attr = a(o, 'attribute')
-      const desc = a(o, 'descending') === 'true' ? ' desc' : ''
-      return attr + desc
+      const dir = a(o, 'descending') === 'true' ? ' desc' : ' asc'
+      return attr + dir
     })
   return orders.join(',')
 }

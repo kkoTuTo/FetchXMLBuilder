@@ -10,7 +10,7 @@ describe('Validator', () => {
     const emptyFetch = { ...root, children: [] }
     const result = validateNode(emptyFetch, emptyFetch)
     expect(result?.level).toBe('error')
-    expect(result?.message).toMatch(/Missing.*entity/)
+    expect(result?.message).toBe('validation.missingEntity')
   })
 
   it('no error for valid fetch with entity', () => {
@@ -24,7 +24,7 @@ describe('Validator', () => {
     const entity = root.children[0]
     const result = validateNode(entity, root)
     expect(result?.level).toBe('warning')
-    expect(result?.message).toMatch(/Entity name/)
+    expect(result?.message).toBe('validation.entityNameRequired')
   })
 
   it('no warning when entity has a name', () => {
@@ -43,7 +43,7 @@ describe('Validator', () => {
     const cond = filter.children[0]
     const result = validateNode(cond, root)
     expect(result?.level).toBe('warning')
-    expect(result?.message).toMatch(/attribute/)
+    expect(result?.message).toBe('validation.conditionAttributeRequired')
   })
 
   it('errors on unsupported operator "contains"', () => {
@@ -51,7 +51,7 @@ describe('Validator', () => {
     const cond = root.children[0].children[0].children[0]
     const result = validateNode(cond, root)
     expect(result?.level).toBe('error')
-    expect(result?.message).toMatch(/contains/)
+    expect(result?.message).toBe('validation.operatorNotSupported')
   })
 
   it('warns on empty filter', () => {
@@ -61,7 +61,7 @@ describe('Validator', () => {
     const filterNode = updatedRoot.children[0].children.find((c) => c.type === 'filter')!
     const result = validateNode(filterNode, updatedRoot)
     expect(result?.level).toBe('info')
-    expect(result?.message).toMatch(/condition/)
+    expect(result?.message).toBe('validation.filterEmpty')
   })
 
   it('validateTree returns a map of issues', () => {
@@ -75,6 +75,6 @@ describe('Validator', () => {
     const root = parseFetchXml(`<fetch datasource="invalid"><entity name="account" /></fetch>`)
     const result = validateNode(root, root)
     expect(result?.level).toBe('error')
-    expect(result?.message).toMatch(/datasource/)
+    expect(result?.message).toBe('validation.invalidDatasource')
   })
 })

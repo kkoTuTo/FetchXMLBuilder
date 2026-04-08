@@ -286,18 +286,18 @@ function validateOrder(
   const parent = path && path.length > 1 ? path[path.length - 2] : null
 
   if (isFetchAggregate(root)) {
-    if (!attr(node, 'alias')) {
-      return {
-        level: 'warning',
-        message: 'validation.orderAliasRequired',
-        helpUrl:
-          'https://learn.microsoft.com/power-apps/developer/data-platform/fetchxml/aggregate-data#order-by',
-      }
-    }
     if (attr(node, 'attribute')) {
       return {
         level: 'warning',
         message: 'validation.orderAttributeNotAllowed',
+        helpUrl:
+          'https://learn.microsoft.com/power-apps/developer/data-platform/fetchxml/aggregate-data#order-by',
+      }
+    }
+    if (!attr(node, 'alias')) {
+      return {
+        level: 'warning',
+        message: 'validation.orderAliasRequired',
         helpUrl:
           'https://learn.microsoft.com/power-apps/developer/data-platform/fetchxml/aggregate-data#order-by',
       }

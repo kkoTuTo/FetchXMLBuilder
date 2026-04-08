@@ -47,7 +47,7 @@ describe('validator', () => {
 
       expect(result).not.toBeNull()
       expect(result?.level).toBe('error')
-      expect(result?.message).toContain('Missing <entity>')
+      expect(result?.message).toBe('validation.missingEntity')
     })
 
     it('should return no error when fetch has entity child', () => {
@@ -76,7 +76,7 @@ describe('validator', () => {
 
       expect(result).not.toBeNull()
       expect(result?.level).toBe('error')
-      expect(result?.message).toContain('Invalid datasource')
+      expect(result?.message).toBe('validation.invalidDatasource')
     })
 
     it('should accept datasource="retained"', () => {
@@ -119,7 +119,7 @@ describe('validator', () => {
 
       expect(result).not.toBeNull()
       expect(result?.level).toBe('error')
-      expect(result?.message).toContain('Aggregate queries cannot use Long Term Retention')
+      expect(result?.message).toBe('validation.aggregateWithRetained')
       expect(result?.helpUrl).toBeDefined()
     })
   })
@@ -144,7 +144,7 @@ describe('validator', () => {
 
       expect(result).not.toBeNull()
       expect(result?.level).toBe('warning')
-      expect(result?.message).toContain('Entity name must be specified')
+      expect(result?.message).toBe('validation.entityNameRequired')
     })
 
     it('should return warning when entity name is not in metadata', () => {
@@ -157,7 +157,7 @@ describe('validator', () => {
 
       expect(result).not.toBeNull()
       expect(result?.level).toBe('warning')
-      expect(result?.message).toContain('not found in metadata')
+      expect(result?.message).toBe('validation.entityNotFound')
     })
 
     it('should return no error when entity name exists in metadata', () => {
@@ -207,7 +207,7 @@ describe('validator', () => {
 
       expect(result).not.toBeNull()
       expect(result?.level).toBe('warning')
-      expect(result?.message).toContain('Condition attribute must be specified')
+      expect(result?.message).toBe('validation.conditionAttributeRequired')
     })
 
     it('should return error for contains operator', () => {
@@ -244,7 +244,7 @@ describe('validator', () => {
 
       expect(result).not.toBeNull()
       expect(result?.level).toBe('error')
-      expect(result?.message).toContain('not supported by FetchXML')
+      expect(result?.message).toBe('validation.operatorNotSupported')
     })
 
     it('should return error for does-not-contain operator', () => {
@@ -281,7 +281,7 @@ describe('validator', () => {
 
       expect(result).not.toBeNull()
       expect(result?.level).toBe('error')
-      expect(result?.message).toContain('not supported by FetchXML')
+      expect(result?.message).toBe('validation.operatorNotSupported')
     })
 
     it('should return no error for valid condition', () => {
@@ -348,7 +348,7 @@ describe('validator', () => {
 
       expect(result).not.toBeNull()
       expect(result?.level).toBe('warning')
-      expect(result?.message).toContain('must specify name, from and to')
+      expect(result?.message).toBe('validation.linkEntityAttributesRequired')
     })
 
     it('should return error when link-entity is used with datasource="retained"', () => {
@@ -378,7 +378,7 @@ describe('validator', () => {
 
       expect(result).not.toBeNull()
       expect(result?.level).toBe('error')
-      expect(result?.message).toContain('cannot be used with Long Term Retention')
+      expect(result?.message).toBe('validation.linkEntityWithRetained')
     })
 
     it('should return error when link-entity under filter has wrong link-type', () => {
@@ -420,7 +420,7 @@ describe('validator', () => {
 
       expect(result).not.toBeNull()
       expect(result?.level).toBe('error')
-      expect(result?.message).toContain('link-type: any, not any, all, or not all')
+      expect(result?.message).toBe('validation.linkEntityFilterLinkType')
     })
 
     it('should accept link-entity under filter with correct link-type', () => {
@@ -496,7 +496,7 @@ describe('validator', () => {
 
       expect(result).not.toBeNull()
       expect(result?.level).toBe('error')
-      expect(result?.message).toContain('can only be used inside a filter')
+      expect(result?.message).toBe('validation.linkTypeOnlyInFilter')
     })
   })
 
@@ -528,7 +528,7 @@ describe('validator', () => {
 
       expect(result).not.toBeNull()
       expect(result?.level).toBe('warning')
-      expect(result?.message).toContain('Attribute name must be specified')
+      expect(result?.message).toBe('validation.attributeNameRequired')
     })
 
     it('should return error when attribute is under filter', () => {
@@ -565,7 +565,7 @@ describe('validator', () => {
 
       expect(result).not.toBeNull()
       expect(result?.level).toBe('error')
-      expect(result?.message).toContain('Attribute under filter is not allowed')
+      expect(result?.message).toBe('validation.attributeUnderFilter')
     })
 
     it('should return warning for attribute without alias in aggregate query', () => {
@@ -595,7 +595,7 @@ describe('validator', () => {
 
       expect(result).not.toBeNull()
       expect(result?.level).toBe('warning')
-      expect(result?.message).toContain('Aggregate attribute should always have an alias')
+      expect(result?.message).toBe('validation.aggregateAliasRequired')
     })
 
     it('should return info for attribute with alias in non-aggregate query', () => {
@@ -625,7 +625,7 @@ describe('validator', () => {
 
       expect(result).not.toBeNull()
       expect(result?.level).toBe('info')
-      expect(result?.message).toContain('Alias is not recommended for non-aggregate')
+      expect(result?.message).toBe('validation.aliasNotRecommended')
     })
   })
 
@@ -657,7 +657,7 @@ describe('validator', () => {
 
       expect(result).not.toBeNull()
       expect(result?.level).toBe('info')
-      expect(result?.message).toContain('at least one condition')
+      expect(result?.message).toBe('validation.filterEmpty')
     })
 
     it('should return no error when filter has children', () => {
@@ -738,7 +738,7 @@ describe('validator', () => {
 
       expect(result).not.toBeNull()
       expect(result?.level).toBe('warning')
-      expect(result?.message).toContain('Value should not be empty')
+      expect(result?.message).toBe('validation.valueEmpty')
     })
 
     it('should return no error when value has content', () => {
@@ -812,7 +812,7 @@ describe('validator', () => {
 
       expect(result).not.toBeNull()
       expect(result?.level).toBe('warning')
-      expect(result?.message).toContain('Order attribute must be specified')
+      expect(result?.message).toBe('validation.orderAttributeRequired')
     })
 
     it('should return warning when order has attribute in aggregate query', () => {
@@ -842,7 +842,7 @@ describe('validator', () => {
 
       expect(result).not.toBeNull()
       expect(result?.level).toBe('warning')
-      expect(result?.message).toContain('must NOT be specified in aggregate')
+      expect(result?.message).toBe('validation.orderAttributeNotAllowed')
     })
 
     it('should return warning when order has no alias in aggregate query', () => {
@@ -872,7 +872,7 @@ describe('validator', () => {
 
       expect(result).not.toBeNull()
       expect(result?.level).toBe('warning')
-      expect(result?.message).toContain('Order alias must be specified in aggregate')
+      expect(result?.message).toBe('validation.orderAliasRequired')
     })
   })
 
@@ -892,7 +892,7 @@ describe('validator', () => {
 
       expect(result).not.toBeNull()
       expect(result?.level).toBe('error')
-      expect(result?.message).toContain('Invalid alias')
+      expect(result?.message).toBe('validation.invalidAlias')
     })
 
     it('should return error for alias with special characters', () => {
