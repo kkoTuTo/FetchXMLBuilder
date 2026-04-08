@@ -154,7 +154,7 @@ describe('Code Generators', () => {
       const out = generateCSharpQueryExpression(SAMPLE_XML, { style: 'QueryExpression', objectInitializer: false, includeComments: false, filterVariables: false, indents: 2 })
       // Each line should start with 2x4-space indent
       const firstLine = out.split('\n')[0]
-      expect(firstLine).toMatch(/^        /)
+      expect(firstLine).toMatch(/^ {8}/)
     })
   })
 })

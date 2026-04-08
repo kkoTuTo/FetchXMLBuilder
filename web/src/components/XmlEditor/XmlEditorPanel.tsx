@@ -20,6 +20,7 @@ export function XmlEditorPanel() {
       isInternalUpdate.current = false
       return
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLocalXml(currentXml)
     setParseError(null)
   }, [currentXml])

@@ -866,7 +866,7 @@ class QExGenerator {
         if (alias) code += `, "${alias}"`
         code += `);${CRLF}`
         break
-      default:
+      default: {
         code += `var ${leName} = ${owner}.AddLink("${name}", "${to}", "${from}", JoinOperator.${joinOp});${CRLF}`
         if (alias) code += `${leName}.EntityAlias = "${alias}";${CRLF}`
 
@@ -879,6 +879,8 @@ class QExGenerator {
         code += this.getFilterLbL(le, leName)
         code += this.getOrdersLbL(name, le, leName, false)
         code += this.getLinkEntitiesLbL(le, leName)
+        break
+      }
     }
     return code
   }

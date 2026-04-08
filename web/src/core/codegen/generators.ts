@@ -219,7 +219,7 @@ function buildODataCondition(_entity: FetchNode, condition: FetchNode): string {
   if (!attr) return ''
 
   const op = a(condition, 'operator')
-  let value = a(condition, 'value')
+  const value = a(condition, 'value')
   const values = children(condition, 'value').map((v) => a(v, '#text') || '')
 
   switch (op) {
