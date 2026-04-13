@@ -137,66 +137,67 @@ FetchXMLBuilder/
 - [x] Zustand 5 store (AST / UI / 历史 / 设置)
 - [x] 持久化 (localStorage)
 
-#### 1.5 Mock 数据服务 ⬜
-- [ ] Mock 实体列表 (account, contact, opportunity 等 10+ 实体)
-- [ ] Mock 属性列表 (每个实体 15+ 属性)
-- [ ] Mock 关系列表
-- [ ] Mock 查询结果 (分页数据)
-- [ ] Mock 认证状态
+#### 1.5 Mock 数据服务 ✅
+- [x] Mock 实体列表 (account, contact, opportunity 等 10+ 实体)
+- [x] Mock 属性列表 (每个实体 15+ 属性)
+- [x] Mock 关系列表
+- [x] Mock 查询结果 (分页数据)
+- [x] Mock 认证状态
 
-#### 1.6 UI 组件 ⬜
-- [ ] **AppShell**: 3 列布局 (树 240px | 主内容 flex | XML 面板 340px)
-- [ ] **Header**: Logo + 导航 Tab + 语言切换 + 主题切换 + 认证状态
-- [ ] **TreeBuilder**: 节点树、右键菜单 (添加/删除/移动/复制/注释)
-- [ ] **NodeForm/FetchForm**: version/top/count/distinct/aggregate/datasource
-- [ ] **NodeForm/EntityForm**: 实体名称下拉 (元数据驱动)
-- [ ] **NodeForm/LinkEntityForm**: name/from/to/alias/link-type/intersect
-- [ ] **NodeForm/AttributeForm**: name/alias/aggregate/groupby/dategrouping
-- [ ] **NodeForm/FilterForm**: type (and/or)
-- [ ] **NodeForm/ConditionForm**: attribute/operator/value/entityname
-- [ ] **NodeForm/OrderForm**: attribute/alias/descending
-- [ ] **NodeForm/ValueForm**: text 值输入
-- [ ] **NodeForm/CommentForm**: 注释文本编辑
-- [ ] **XmlEditor**: Monaco 编辑器双向同步
-- [ ] **CodeOutput**: 6 语言标签页 + 复制按钮
-- [ ] **ResultGrid**: AntD Table + 分页 + CSV/JSON 导出
-- [ ] **HistoryPanel**: 历史列表 + 恢复 + 清空
-- [ ] **SettingsPanel**: 主题/语言/显示选项
-- [ ] **ValidationBadge**: 节点错误/警告徽章
-- [ ] **AuthBar**: 登录状态 + Mock 登录/登出
+#### 1.6 UI 组件 ✅
+- [x] **AppShell**: 3 列布局 (树 260px | 主内容 flex | XML 面板 360px)
+- [x] **Header**: Logo + 导航 Tab + 语言切换 + 主题切换 + 认证状态
+- [x] **TreeBuilder**: 节点树、右键菜单 (添加/删除/移动/复制/注释)
+- [x] **NodeForm/FetchForm**: version/top/count/distinct/aggregate/datasource
+- [x] **NodeForm/EntityForm**: 实体名称下拉 (元数据驱动)
+- [x] **NodeForm/LinkEntityForm**: name/from/to/alias/link-type/intersect
+- [x] **NodeForm/AttributeForm**: name/alias/aggregate/groupby/dategrouping
+- [x] **NodeForm/FilterForm**: type (and/or)
+- [x] **NodeForm/ConditionForm**: attribute/operator/value/entityname
+- [x] **NodeForm/OrderForm**: attribute/alias/descending
+- [x] **NodeForm/ValueForm**: text 值输入
+- [x] **NodeForm/CommentForm**: 注释文本编辑
+- [x] **XmlEditor**: Monaco 编辑器双向同步
+- [x] **CodeOutput**: 6 语言标签页 + 复制按钮
+- [x] **ResultGrid**: AntD Table + 分页 + CSV/JSON 导出
+- [x] **HistoryPanel**: 历史列表 + 恢复 + 清空
+- [x] **SettingsPanel**: 主题/语言/显示选项 + Mock/Real API 开关
+- [x] **ValidationBadge**: 节点错误/警告徽章
 
-#### 1.7 功能串联 ⬜
-- [ ] 树 ↔ XML 编辑器双向同步
-- [ ] 节点选中 → 属性面板联动
-- [ ] 元数据驱动下拉 (基于 Mock 数据)
-- [ ] 执行查询 (Mock 结果)
-- [ ] 历史自动保存
+#### 1.7 功能串联 ✅
+- [x] 树 ↔ XML 编辑器双向同步
+- [x] 节点选中 → 属性面板联动
+- [x] 元数据驱动下拉 (基于 Mock 数据)
+- [x] 执行查询 (Mock 结果 / 真实 API)
+- [x] 历史自动保存
 
-#### 1.8 测试 ⬜
-- [ ] AST 操作单元测试
-- [ ] XML 解析/序列化单元测试
-- [ ] 验证规则单元测试
-- [ ] 代码生成器单元测试
+#### 1.8 测试 ✅
+- [x] AST 操作单元测试
+- [x] XML 解析/序列化单元测试
+- [x] 验证规则单元测试
+- [x] 代码生成器单元测试
 
-#### 1.9 CI ⬜
-- [ ] GitHub Actions: lint + typecheck + test + build
+#### 1.9 CI ✅
+- [x] GitHub Actions: lint + typecheck + test + build
 
 ---
 
 ### Phase 2 — 后端 ASP.NET Core Web API (待做)
 
-- [ ] `dotnet new webapi` 创建 `api/FetchXmlBuilder.Api` 项目
-- [ ] `MetadataController` → 返回 Dataverse 实体/属性/关系列表
-- [ ] `QueryController` → 执行 FetchXML 查询并返回分页结果
-- [ ] `AuthController` → MSAL token 验证 / 用户信息
-- [ ] `DataverseService` → 封装 Dataverse SDK 调用
-- [ ] `MetadataCacheService` → IMemoryCache (TTL 1h) + Redis (可选)
-- [ ] Swagger/OpenAPI 文档
-- [ ] CORS 配置 (允许前端开发域)
-- [ ] AAD 认证 (Microsoft.Identity.Web)
-- [ ] 前端切换为真实 API 调用 (关闭 Mock 开关)
-- [ ] Docker & docker-compose 配置
-- [ ] 后端 CI: build + test + publish
+- [x] `dotnet new webapi` 创建 `api/FetchXmlBuilder.Api` 项目
+- [x] `MetadataController` → 返回 Dataverse 实体/属性/关系列表
+- [x] `QueryController` → 执行 FetchXML 查询并返回分页结果
+- [x] `AuthController` → ADFS token 验证 / BEContext 前端使用
+- [x] `DataverseService` → 封装 Dataverse SDK 调用 (DataverseSdkService)
+- [x] `MetadataCacheService` → IMemoryCache (TTL 1h) 内置于 DataverseWebApiService
+- [x] Swagger/OpenAPI 文档
+- [x] CORS 配置 (允许前端开发域)
+- [x] ADFS OAuth2 认证 (client_credentials + ROPC，无 MSAL/AAD 依赖)
+- [x] 前端切换为真实 API 调用 (Settings → "Use Mock Data" 开关)
+- [x] 前端 Phase 2 API 服务层 (`services/auth/`, `services/dataverse/`, `services/metadata/`)
+- [x] Docker & docker-compose 配置
+- [x] 后端测试项目 (`api/FetchXmlBuilder.Api.Tests/`, 13 个测试全部通过)
+- [x] 后端 CI: build + test + publish (`.github/workflows/backend-ci.yml`)
 
 ---
 

@@ -21,6 +21,9 @@ import {
 import { serialiseFetchXml, parseFetchXml } from '@/core/parser/index.ts'
 import { validateTree } from '@/core/validator/index.ts'
 import { MOCK_ACCOUNT_RESULTS } from '@/services/mock/mockData.ts'
+import { executeQuery } from '@/services/dataverse/queryService.ts'
+import { fetchEntities } from '@/services/metadata/metadataService.ts'
+import { fetchAuthContext } from '@/services/auth/authService.ts'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -38,6 +41,11 @@ export interface AppSettings {
   language: string
   orgUrl: string
   baseApiUrl: string
+  /**
+   * When true (default), the app uses mock data and simulated queries.
+   * Set to false to connect to the real ASP.NET Core backend API.
+   */
+  useMockData: boolean
   /** Legacy simple C# toggle (fetchxml | fetchexpression).
    *  Superseded by qexStyle when the full options panel is used. */
   csharpStyle: 'fetchxml' | 'fetchexpression'
@@ -93,6 +101,8 @@ export interface FxbState {
   moveNodeDir: (id: string, direction: 'up' | 'down') => void
   setEntities: (entities: EntityMeta[]) => void
   setMetadataLoading: (loading: boolean) => void
+  /** Loads entities from the real backend API (Phase 2). No-op in mock mode. */
+  loadMetadata: () => Promise<void>
   setActiveTab: (tab: FxbState['activeTab']) => void
   setActiveCodeLang: (lang: CodeLanguage) => void
   toggleXmlPanel: () => void
@@ -123,6 +133,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   language: 'en',
   orgUrl: '',
   baseApiUrl: 'https://[org].api.crm.dynamics.com/api/data/v9.2',
+  useMockData: true,
   csharpStyle: 'fetchxml',
   qexStyle: 'FetchXML',
   qexFlavor: 'LateBound',
@@ -248,6 +259,31 @@ export const useFxbStore = create<FxbState>()(
 
         setMetadataLoading: (loading) => set({ metadataLoading: loading }),
 
+        loadMetadata: async () => {
+          const { settings } = get()
+          if (settings.useMockData) return // mock entities are loaded in App.tsx
+
+          set({ metadataLoading: true })
+          try {
+            // First resolve auth context so we can also show "connected" state
+            try {
+              const ctx = await fetchAuthContext(settings.baseApiUrl)
+              set({ isAuthenticated: true, accountName: ctx.orgUrl })
+            } catch {
+              // auth failure is non-fatal for metadata loading
+            }
+            const entities = await fetchEntities(settings.baseApiUrl)
+            set((s) => ({
+              entities,
+              metadataLoading: false,
+              validationResults: revalidate(s.root, entities),
+            }))
+          } catch (e) {
+            set({ metadataLoading: false })
+            console.error('Failed to load metadata from API:', e)
+          }
+        },
+
         setActiveTab: (activeTab) => set({ activeTab }),
 
         setActiveCodeLang: (activeCodeLang) => set({ activeCodeLang }),
@@ -265,23 +301,39 @@ export const useFxbStore = create<FxbState>()(
         setQueryPage: (queryPage) => set({ queryPage }),
 
         runQuery: () => {
-          set({ queryRunning: true, queryError: null })
-          // Mock mode: simulate async query with delay
-          setTimeout(() => {
-            try {
+          const { settings, root } = get()
+          set({ queryRunning: true, queryError: null, activeTab: 'result' })
+
+          if (settings.useMockData) {
+            // Mock mode: simulate async query with delay
+            setTimeout(() => {
               set({
                 queryResults: MOCK_ACCOUNT_RESULTS as Record<string, unknown>[],
                 queryTotalCount: MOCK_ACCOUNT_RESULTS.length,
                 queryRunning: false,
                 queryPage: 1,
               })
-            } catch (e) {
+            }, 800)
+            return
+          }
+
+          // Real API mode
+          const fetchXml = serialiseFetchXml(root)
+          executeQuery(settings.baseApiUrl, { fetchXml, pageNumber: get().queryPage })
+            .then((result) => {
+              set({
+                queryResults: result.records,
+                queryTotalCount: result.totalRecordCount,
+                queryRunning: false,
+                queryPage: 1,
+              })
+            })
+            .catch((e: unknown) => {
               set({
                 queryError: e instanceof Error ? e.message : 'Query failed',
                 queryRunning: false,
               })
-            }
-          }, 800)
+            })
         },
 
         setAuth: (isAuthenticated, accountName) =>

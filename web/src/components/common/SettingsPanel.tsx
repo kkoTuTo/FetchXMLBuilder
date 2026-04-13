@@ -166,12 +166,37 @@ export function SettingsPanel() {
 
       <div style={{ marginTop: 24 }}>
         <SectionTitle title="Dataverse Connection" />
+        <SettingRow
+          label="Use Mock Data"
+          hint="Phase 1: use built-in mock data. Phase 2: connect to the ASP.NET Core backend."
+        >
+          <Switch
+            size="small"
+            checked={settings.useMockData}
+            onChange={(v) => updateSettings({ useMockData: v })}
+          />
+        </SettingRow>
         <SettingRow label={t('auth.orgUrl')}>
           <Input
             size="small"
             value={settings.orgUrl}
             onChange={(e) => updateSettings({ orgUrl: e.target.value })}
             placeholder={t('auth.orgUrlPlaceholder')}
+            disabled={settings.useMockData}
+            style={{
+              width: 240,
+              fontFamily: 'var(--font-mono)',
+              fontSize: 12,
+            }}
+          />
+        </SettingRow>
+        <SettingRow label="Backend API URL" hint="Base URL of the ASP.NET Core API (e.g. http://localhost:8080)">
+          <Input
+            size="small"
+            value={settings.baseApiUrl}
+            onChange={(e) => updateSettings({ baseApiUrl: e.target.value })}
+            placeholder="http://localhost:8080"
+            disabled={settings.useMockData}
             style={{
               width: 240,
               fontFamily: 'var(--font-mono)',

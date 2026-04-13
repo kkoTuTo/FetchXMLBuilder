@@ -28,11 +28,18 @@ function CenterPanel() {
 }
 
 export default function App() {
-  const { setEntities } = useFxbStore()
+  const { setEntities, settings, loadMetadata } = useFxbStore()
 
   useEffect(() => {
-    setEntities(MOCK_ENTITIES)
-  }, [setEntities])
+    if (settings.useMockData) {
+      // Phase 1 – load mock entity metadata
+      setEntities(MOCK_ENTITIES)
+    } else {
+      // Phase 2 – fetch real metadata from the backend
+      void loadMetadata()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.useMockData])
 
   return (
     <Suspense
