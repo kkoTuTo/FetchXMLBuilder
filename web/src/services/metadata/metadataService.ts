@@ -9,7 +9,7 @@ import type { RelationMeta } from '@/services/mock/mockData.ts'
 // ─── Response shapes (mirror Dataverse Web API OData format) ─────────────────
 
 interface ODataCollection<T> {
-  value: T[]
+  value?: T[]
 }
 
 interface ODataEntityDef {

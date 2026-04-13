@@ -53,6 +53,10 @@ export async function executeQuery(
 /**
  * Executes a FetchXML query via GET (Dataverse Web API).
  * Suitable for small queries where URL length is not a concern.
+ *
+ * ⚠️ URL length limit: browsers and servers typically cap GET URLs at ~2 000–8 000
+ * characters. For complex or large FetchXML queries, prefer `executeQuery` (POST)
+ * to avoid truncation errors.
  */
 export async function executeQueryGet(
   baseApiUrl: string,

@@ -268,7 +268,9 @@ export const useFxbStore = create<FxbState>()(
             // First resolve auth context so we can also show "connected" state
             try {
               const ctx = await fetchAuthContext(settings.baseApiUrl)
-              set({ isAuthenticated: true, accountName: ctx.orgUrl })
+              // Display the org URL as the connection label in the header
+              const orgLabel = new URL(ctx.orgUrl).hostname
+              set({ isAuthenticated: true, accountName: orgLabel })
             } catch {
               // auth failure is non-fatal for metadata loading
             }
