@@ -1,0 +1,62 @@
+# docker-compose.yml – local development stack
+# Usage:
+#   docker-compose up --build          # start API + frontend
+#   docker-compose up api              # start API only
+#
+# Required environment variables (create .env file or export them):
+#   ADFS_ENDPOINT, CRM_CLIENT_ID, CRM_RESOURCE, CRM_ORG_URL
+# Optional:
+#   CRM_CLIENT_SECRET, ADFS_USERNAME, ADFS_PASSWORD, ADFS_GRANT_TYPE
+
+services:
+  # ── ASP.NET Core 9 Web API ─────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: fetchxmlbuilder-api:dev
+    container_name: fxb-api
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      # CRM / ADFS settings (override appsettings.json)
+      CrmSettings__OrgUrl:         ${CRM_ORG_URL:-https://crm.contoso.com/OrgName}
+      CrmSettings__AuthType:       IFD
+      AdfsSettings__Endpoint:      ${ADFS_ENDPOINT:-https://adfs.contoso.com/adfs/oauth2/token}
+      AdfsSettings__ClientId:      ${CRM_CLIENT_ID:-change-me}
+      AdfsSettings__ClientSecret:  ${CRM_CLIENT_SECRET:-}
+      AdfsSettings__Resource:      ${CRM_RESOURCE:-https://crm.contoso.com/OrgName/}
+      AdfsSettings__GrantType:     ${ADFS_GRANT_TYPE:-client_credentials}
+      AdfsSettings__Username:      ${ADFS_USERNAME:-}
+      AdfsSettings__Password:      ${ADFS_PASSWORD:-}
+      AdfsSettings__ValidateCertificate: "false"
+      # CORS – allow local Vite dev server
+      Cors__AllowedOrigins__0: http://localhost:5173
+      Cors__AllowedOrigins__1: http://localhost:3000
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  # ── React / Vite frontend ──────────────────────────────────────────────────
+  web:
+    image: node:22-alpine
+    container_name: fxb-web
+    working_dir: /app
+    volumes:
+      - ./web:/app
+      - /app/node_modules
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    ports:
+      - "5173:5173"
+    environment:
+      # Point the frontend at the API container
+      VITE_API_BASE_URL: http://localhost:8080
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped

@@ -1,0 +1,168 @@
+{
+  "app": {
+    "title": "FetchXML Builder Web",
+    "subtitle": "为 Microsoft Dataverse 和 Power Platform 构建查询"
+  },
+  "nav": {
+    "builder": "构建器",
+    "result": "结果",
+    "code": "代码",
+    "history": "历史",
+    "settings": "设置"
+  },
+  "tree": {
+    "addChild": "添加子节点",
+    "delete": "删除",
+    "moveUp": "上移",
+    "moveDown": "下移",
+    "comment": "注释",
+    "uncomment": "取消注释",
+    "duplicate": "复制",
+    "noEntity": "（无实体）",
+    "noName": "（无名称）"
+  },
+  "node": {
+    "fetch": "Fetch",
+    "entity": "实体",
+    "linkEntity": "关联实体",
+    "attribute": "字段",
+    "allAttributes": "所有字段",
+    "filter": "筛选器",
+    "condition": "条件",
+    "order": "排序",
+    "value": "值",
+    "comment": "注释"
+  },
+  "form": {
+    "save": "保存",
+    "cancel": "取消",
+    "apply": "应用",
+    "name": "名称",
+    "alias": "别名",
+    "aggregate": "聚合",
+    "groupby": "分组",
+    "distinct": "去重",
+    "top": "最大返回行数",
+    "count": "计数",
+    "page": "页码",
+    "pageSize": "每页条数",
+    "pagingCookie": "分页凭证",
+    "datasource": "数据源",
+    "from": "来源字段",
+    "to": "目标字段",
+    "linkType": "关联类型",
+    "filterType": "筛选类型",
+    "attribute": "字段",
+    "operator": "操作符",
+    "value": "值",
+    "entityname": "实体名称（跨实体条件）",
+    "descending": "降序",
+    "noLock": "无锁",
+    "mapping": "映射",
+    "returnTotalRecordCount": "返回总记录数",
+    "intersect": "中间表",
+    "userTimezone": "用户时区",
+    "dategrouping": "日期分组",
+    "isQuickFind": "快速查找字段",
+    "overrideQFLimitApply": "覆盖快速查找记录限制（应用）",
+    "overrideQFLimitBypass": "覆盖快速查找记录限制（绕过）",
+    "hint": "提示",
+    "placeholder": {
+      "entityName": "例如 account",
+      "attribute": "例如 name",
+      "alias": "例如 myAlias",
+      "value": "输入值"
+    }
+  },
+  "validation": {
+    "error": "错误",
+    "warning": "警告",
+    "info": "提示",
+    "learnMore": "了解更多",
+    "invalidAlias": "无效的别名：\"{{alias}}\"。必须以字母或下划线开头，且只能包含字母、数字或下划线。",
+    "missingEntity": "<fetch> 下缺少 <entity>。",
+    "invalidDatasource": "无效的数据源值。仅允许 \"retained\"。",
+    "aggregateWithRetained": "聚合查询不能使用长期保留（retained）数据。",
+    "entityNameRequired": "必须指定实体名称。",
+    "entityNotFound": "在元数据中找不到实体 \"{{name}}\"。",
+    "linkEntityWithRetained": "link-entity 不能与长期保留数据一起使用。",
+    "linkEntityAttributesRequired": "link-entity 必须指定 name、from 和 to 属性。",
+    "linkEntityFilterLinkType": "filter 下的 link-entity 必须具有 link-type：any、not any、all 或 not all。",
+    "linkEntityFilterNoAttributes": "filter 下的 link-entity 不能返回字段。",
+    "linkTypeOnlyInFilter": "link-type any/not any/all/not all 只能在 filter 内部使用。",
+    "attributeNameRequired": "必须指定字段名称。",
+    "attributeNotFound": "在实体 \"{{entityName}}\" 中找不到字段 \"{{name}}\"。",
+    "attributeUnderFilter": "filter 下不允许使用 attribute。",
+    "aggregateAliasRequired": "聚合字段应始终具有别名。",
+    "aliasNotRecommended": "非聚合查询不建议使用别名。",
+    "filterEmpty": "filter 应至少有一个条件。",
+    "conditionAttributeRequired": "必须指定条件字段。",
+    "operatorNotSupported": "FetchXML 不支持 \"{{operator}}\" 操作符。",
+    "entitynameOnLinkEntity": "不能在 link-entity 条件上指定 entityname。",
+    "conditionAttributeNotFound": "在实体 \"{{entityName}}\" 中找不到字段 \"{{attribute}}\"。",
+    "valueEmpty": "值不应为空。",
+    "orderAliasRequired": "聚合查询中必须指定排序别名。",
+    "orderAttributeNotAllowed": "聚合查询中不应指定排序字段。",
+    "orderAttributeRequired": "必须指定排序字段。",
+    "linkEntityOrderLegacy": "在 link-entity 列上排序会触发传统分页。",
+    "orderAttributeNotFound": "在实体 \"{{entityName}}\" 中找不到排序字段 \"{{attribute}}\"。"
+  },
+  "xml": {
+    "title": "FetchXML",
+    "copy": "复制",
+    "format": "格式化",
+    "copied": "已复制！"
+  },
+  "code": {
+    "title": "生成代码",
+    "copy": "复制",
+    "copied": "已复制！",
+    "lang": {
+      "fetchxml": "FetchXML",
+      "odata": "OData URL",
+      "csharp": "C#",
+      "javascript": "JavaScript",
+      "powerfx": "Power Fx",
+      "sql": "SQL（预览）"
+    }
+  },
+  "auth": {
+    "signIn": "登录 Dataverse",
+    "signOut": "退出登录",
+    "connected": "已连接",
+    "notConnected": "未连接",
+    "connecting": "连接中…",
+    "orgUrl": "组织 URL",
+    "orgUrlPlaceholder": "https://yourorg.crm.dynamics.com"
+  },
+  "execute": {
+    "run": "执行查询",
+    "running": "执行中…",
+    "noResults": "未返回任何记录。",
+    "exportCsv": "导出 CSV",
+    "exportJson": "导出 JSON",
+    "totalRecords": "共 {{count}} 条记录",
+    "page": "第 {{page}} 页"
+  },
+  "history": {
+    "title": "查询历史",
+    "empty": "暂无历史记录。",
+    "clear": "清空",
+    "restore": "恢复",
+    "savedAt": "保存于 {{time}}"
+  },
+  "settings": {
+    "title": "设置",
+    "language": "语言",
+    "theme": "主题",
+    "themeLight": "亮色",
+    "themeDark": "暗色",
+    "showNodeType": "在树中显示节点类型",
+    "showValidation": "显示验证提示"
+  },
+  "errors": {
+    "parseXml": "解析 FetchXML 失败",
+    "executeQuery": "执行查询失败",
+    "loadMetadata": "加载元数据失败"
+  }
+}

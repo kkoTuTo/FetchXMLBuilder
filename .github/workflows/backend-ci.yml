@@ -1,0 +1,76 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main, master, 'copilot/**']
+    paths:
+      - 'api/**'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'api/**'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - '.github/workflows/backend-ci.yml'
+
+defaults:
+  run:
+    working-directory: api
+
+jobs:
+  ci:
+    name: Build · Test · Publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore
+        run: |
+          dotnet restore FetchXmlBuilder.Api/FetchXmlBuilder.Api.csproj
+          dotnet restore FetchXmlBuilder.Api.Tests/FetchXmlBuilder.Api.Tests.csproj
+
+      - name: Build
+        run: dotnet build FetchXmlBuilder.Api/FetchXmlBuilder.Api.csproj \
+               --no-restore \
+               -c Release
+
+      - name: Test
+        run: dotnet test FetchXmlBuilder.Api.Tests/FetchXmlBuilder.Api.Tests.csproj \
+               --no-restore \
+               -c Release \
+               --logger "trx;LogFileName=test-results.trx" \
+               --results-directory ./TestResults
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-test-results
+          path: api/TestResults/*.trx
+          retention-days: 7
+
+      - name: Publish
+        run: dotnet publish FetchXmlBuilder.Api/FetchXmlBuilder.Api.csproj \
+               --no-restore \
+               -c Release \
+               -o ./publish
+
+      - name: Upload publish artifact
+        uses: actions/upload-artifact@v4
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        with:
+          name: api-publish
+          path: api/publish
+          retention-days: 7
